@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Abel's Survival">
+<meta name="theme-color" content="#0b0d0c">
+<title>Abel's Survival</title>
+<style>
+:root{--ink:#e8e2d0;--dim:#9a9482;--blood:#b8322a;--stam:#d9a441;--food:#9a7b3c;--water:#3f7ea8;--ok:#9fc27a;--no:#d0675e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0d0c;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:"Trebuchet MS",system-ui,sans-serif;color:var(--ink)}
+button{font-family:inherit;color:inherit}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+#hud{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 14px) 0 calc(env(safe-area-inset-left) + 14px);display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:2}
+.bars{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;width:min(46vw,320px)}
+.bar{height:13px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);border-radius:3px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:100%;transition:width .12s}
+#hpb i{background:linear-gradient(90deg,#7d1d17,var(--blood))}
+#stb i{background:linear-gradient(90deg,#8a6420,var(--stam))}
+#hub i{background:linear-gradient(90deg,#5c4520,var(--food))}
+#thb i{background:linear-gradient(90deg,#1f4560,var(--water))}
+#stb.tired i{background:#5a4a2a}
+.bar.low{animation:blink 1s infinite}
+@keyframes blink{50%{border-color:var(--blood)}}
+.bar span{position:absolute;left:6px;top:0;font-size:10px;line-height:12px;letter-spacing:1px;font-weight:700;text-shadow:0 1px 2px #000}
+.stats{text-align:right;font-weight:700;letter-spacing:1px;text-shadow:0 1px 3px #000;font-size:14px;line-height:1.45}
+.stats small{color:var(--dim);font-size:11px;font-weight:600}
+#menu{display:flex;gap:6px;justify-content:flex-end;margin-top:6px;pointer-events:auto}
+.mbtn{background:rgba(20,22,18,.7);border:1px solid rgba(232,226,208,.3);border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;letter-spacing:1px}
+#btns{position:fixed;right:calc(env(safe-area-inset-right) + 18px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:200px;height:180px;pointer-events:none;z-index:2}
+.btn{position:absolute;border-radius:50%;border:2px solid rgba(232,226,208,.35);background:rgba(20,22,18,.55);color:var(--ink);font-weight:800;letter-spacing:1px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;font-size:12px;touch-action:none;line-height:1.1}
+.btn.on{background:rgba(232,226,208,.22);border-color:rgba(232,226,208,.85)}
+#atk{width:100px;height:100px;right:0;bottom:0;border-color:rgba(184,50,42,.75)}
+#atk span{font-size:28px}
+#atk small{font-size:10px;margin-top:2px}
+#run{width:64px;height:64px;right:112px;bottom:4px}
+#dodge{width:64px;height:64px;right:22px;bottom:112px}
+#use{width:64px;height:64px;right:112px;bottom:84px;border-color:rgba(217,164,65,.8);font-size:11px}
+#buildbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);display:flex;align-items:center;gap:8px;background:rgba(12,14,11,.85);border:1px solid #3a3d33;border-radius:8px;padding:6px 8px;z-index:3;font-size:12px}
+#buildbar .pbtn{padding:8px 14px}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 112px);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:4}
+.toast{background:rgba(10,12,9,.82);border:1px solid #3a3d33;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700;transition:opacity .3s}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at center,rgba(10,12,10,.55),rgba(5,6,5,.95));z-index:5;padding:20px}
+.screen h1{font-size:clamp(34px,8vw,66px);margin:0;letter-spacing:4px;color:#d8d0b8;text-shadow:0 3px 0 #3a1512,0 0 30px rgba(184,50,42,.35)}
+.screen h2{font-size:clamp(28px,6vw,48px);margin:0;letter-spacing:6px;color:var(--blood);text-shadow:0 2px 0 #000}
+.screen p{color:var(--dim);margin:6px 0;font-size:14px}
+.screen .go{margin-top:18px;font-weight:800;letter-spacing:3px;color:var(--ink);animation:pulse 1.4s infinite}
+.tbtns{display:flex;gap:12px;margin-top:18px}
+.tbtn{background:rgba(30,33,26,.9);border:1px solid #6a6450;border-radius:8px;padding:12px 22px;font-weight:800;letter-spacing:2px;font-size:14px}
+.tbtn.main{border-color:var(--blood);background:rgba(90,25,20,.6)}
+@keyframes pulse{50%{opacity:.35}}
+.hide{display:none!important}
+#rotate{z-index:9;display:none}
+@media (orientation:portrait){#rotate{display:flex}}
+/* panels */
+#panel{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 12px)}
+.pcard{width:min(700px,100%);max-height:100%;display:flex;flex-direction:column;background:#151813;border:1px solid #3a3d33;border-radius:10px;overflow:hidden}
+.phead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #2c2f27;font-weight:800;letter-spacing:2px;font-size:14px}
+.phead button{background:none;border:0;font-size:20px;padding:0 4px}
+#pbody{overflow-y:auto;padding:10px 12px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.bagwrap{display:flex;gap:10px}
+.equip{display:flex;flex-direction:column;gap:6px;width:64px;flex:none}
+.equip label{font-size:9px;color:var(--dim);letter-spacing:1px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;flex:1}
+.slot{aspect-ratio:1;background:#0e100d;border:1px solid #33362d;border-radius:6px;position:relative;font-size:22px;padding:0;min-width:0}
+.slot.sel{border-color:var(--stam);box-shadow:0 0 0 1px var(--stam)}
+.slot b{position:absolute;right:3px;bottom:2px;font-size:11px}
+.slot i{position:absolute;left:4px;right:4px;bottom:3px;height:3px;border-radius:2px;background:#33362d}
+.slot i u{display:block;height:100%;background:#7ea24e;border-radius:2px}
+.detail{margin-top:10px;min-height:64px;border-top:1px solid #2c2f27;padding-top:8px;display:flex;align-items:center;gap:12px}
+.detail .txt{flex:1;font-size:13px}
+.detail .txt b{font-size:14px}
+.detail .txt div{color:var(--dim);margin-top:2px}
+.pbtn{background:#2a2e24;border:1px solid #4a4f40;border-radius:6px;padding:8px 12px;font-weight:700;letter-spacing:1px;font-size:12px}
+.pbtn.go2{border-color:#7a9a52;background:#2f3a24}
+.pbtn:disabled{opacity:.35}
+.sec{font-size:11px;letter-spacing:2px;color:var(--dim);margin:10px 0 4px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #22251e}
+.row .ic{font-size:24px;width:34px;text-align:center}
+.row .nm{flex:1;font-size:13px;font-weight:700}
+.row .nm div{font-weight:400;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11px;padding:2px 6px;border-radius:4px;background:#22251e;font-weight:600}
+.chip.no{color:var(--no)} .chip.ok{color:var(--ok)} .chip.st{color:var(--stam)}
+.hint{font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud" class="hide">
+  <div class="bars">
+    <div class="bar" id="hpb"><i></i><span>HEALTH</span></div>
+    <div class="bar" id="hub"><i></i><span>FOOD</span></div>
+    <div class="bar" id="stb"><i></i><span>STAMINA</span></div>
+    <div class="bar" id="thb"><i></i><span>WATER</span></div>
+  </div>
+  <div class="stats">
+    <div id="day">DAY 1 · 06:00</div><small id="kills">KILLS 0</small>
+    <div id="menu"><button class="mbtn" id="mbag">BAG</button><button class="mbtn" id="mcraft">CRAFT</button><button class="mbtn" id="mbuild">BUILD</button><button class="mbtn" id="msound">🔊</button></div>
+  </div>
+</div>
+
+<div id="btns" class="hide">
+  <div class="btn hide" id="use">USE</div>
+  <div class="btn" id="dodge">DODGE</div>
+  <div class="btn" id="run">RUN</div>
+  <div class="btn" id="atk"><span id="atkic">✊</span><small id="atklab">ATTACK</small></div>
+</div>
+
+<div id="buildbar" class="hide">
+  <span id="bhint"></span>
+  <button class="pbtn go2" id="bplace">PLACE</button>
+  <button class="pbtn" id="bdone">DONE</button>
+</div>
+
+<div id="toasts"></div>
+
+<div id="panel" class="hide">
+  <div class="pcard">
+    <div class="phead"><span id="ptitle"></span><button id="pclose">✕</button></div>
+    <div id="pbody" class="scroll"></div>
+  </div>
+</div>
+
+<div class="screen" id="title">
+  <h1>ABEL'S SURVIVAL</h1>
+  <p>The dead don't sleep. Neither should you.</p>
+  <p>Left thumb: move &nbsp;·&nbsp; Right: attack, run, dodge, use</p>
+  <div class="tbtns">
+    <button class="tbtn main hide" id="tcont">CONTINUE</button>
+    <button class="tbtn" id="tnew">NEW GAME</button>
+  </div>
+  <p id="tsave"></p>
+  <button class="mbtn" id="tbackup" style="margin-top:6px">BACKUP / RESTORE SAVE</button>
+</div>
+
+<div class="screen hide" id="backup">
+  <h2 style="color:var(--ink);font-size:26px">SAVE BACKUP</h2>
+  <p>Copy this code somewhere safe (Notes works). If Safari ever clears the game, paste it back to restore.</p>
+  <textarea id="bcode" class="scroll" readonly style="width:min(620px,94vw);height:70px;background:#0e100d;color:var(--ink);border:1px solid #3a3d33;border-radius:6px;font-size:10px;user-select:text;-webkit-user-select:text"></textarea>
+  <div class="tbtns" style="margin-top:8px"><button class="tbtn" id="bcopy">COPY CODE</button></div>
+  <textarea id="bpaste" class="scroll" placeholder="Paste a backup code here to restore" style="width:min(620px,94vw);height:50px;margin-top:10px;background:#0e100d;color:var(--ink);border:1px solid #3a3d33;border-radius:6px;font-size:10px;user-select:text;-webkit-user-select:text"></textarea>
+  <div class="tbtns" style="margin-top:8px"><button class="tbtn" id="brestore">RESTORE</button><button class="tbtn" id="bclose">BACK</button></div>
+  <p id="bmsg"></p>
+</div>
+
+<div class="screen hide" id="win" style="background:rgba(6,7,6,.97);z-index:7">
+  <h1>YOU MADE IT</h1>
+  <p style="color:var(--ink);font-size:16px">The Armored Truck roars to life. Abel survived the end of the world.</p>
+  <p id="winstats"></p>
+  <div class="tbtns"><button class="tbtn main" id="wkeep">KEEP PLAYING</button></div>
+</div>
+
+<div class="screen hide" id="dead">
+  <h2>YOU DIED</h2>
+  <p id="deadstats"></p>
+  <p>Your backpack is where you fell. Get it back before you die again.</p>
+  <div class="go">TAP TO RESPAWN AT CAMP</div>
+</div>
+
+<div class="screen" id="rotate" style="z-index:9">
+  <h1 style="font-size:28px">ROTATE YOUR PHONE</h1>
+  <p>Abel's Survival plays sideways.</p>
+</div>
+
+<script>
+(function () {
+"use strict";
+
+// =============== canvas ===============
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let VW = 0, VH = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = window.innerWidth; VH = window.innerHeight;
+  cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR);
+}
+window.addEventListener("resize", resize);
+resize();
+
+// =============== helpers ===============
+let seed = 20261013;
+function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+const R = Math.random;
+const ri = (a, b) => a + Math.floor(R() * (b - a + 1));
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; }
+function store(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+// =============== items ===============
+const ITEMS = {
+  wood:{n:"Wood",i:"🪵",st:40,d:"For building and crafting."},
+  stone:{n:"Stone",i:"🪨",st:40,d:"For building and crafting."},
+  fiber:{n:"Plant fiber",i:"🌿",st:40,d:"Ties things together. Picked from bushes."},
+  cloth:{n:"Cloth",i:"🧣",st:30,d:"For bandages and gear. Found in wrecks."},
+  scrap:{n:"Scrap metal",i:"🔩",st:30,d:"Salvaged from car wrecks."},
+  hide:{n:"Rabbit hide",i:"🟫",st:30,d:"For leather gear."},
+  ironore:{n:"Iron ore",i:"🟤",st:30,d:"Mine rocks with a pickaxe. Smelt in a furnace."},
+  coal:{n:"Coal",i:"⬛",st:30,d:"Furnace fuel. Mine rocks with a pickaxe."},
+  ironbar:{n:"Iron bar",i:"⚙️",st:30,d:"Strong crafting metal."},
+  gascan:{n:"Gas can",i:"⛽",st:10,d:"Old gasoline. Vehicles will need it."},
+  rope:{n:"Rope",i:"🪢",st:20,d:"For traps, gear and vehicles."},
+  seeds:{n:"Seeds",i:"🌱",st:30,d:"Plant them in a garden plot (coming later)."},
+  berries:{n:"Berries",i:"🫐",st:20,d:"A small snack.",use:{hu:8,th:3},verb:"EAT"},
+  rawmeat:{n:"Raw meat",i:"🥩",st:10,d:"Cook it at a campfire. Eating it raw hurts.",use:{hu:10,hp:-6},verb:"EAT"},
+  cookedmeat:{n:"Cooked meat",i:"🍖",st:10,d:"Filling, and heals a little.",use:{hu:32,hp:6},verb:"EAT"},
+  canfood:{n:"Canned beans",i:"🥫",st:10,d:"Still good. Probably.",use:{hu:26,th:-4},verb:"EAT"},
+  dirtywater:{n:"Dirty water",i:"🚱",st:10,d:"Boil it at a campfire. Drinking it raw hurts.",use:{th:18,hp:-6},verb:"DRINK"},
+  water:{n:"Clean water",i:"💧",st:10,d:"Safe to drink.",use:{th:35},verb:"DRINK"},
+  bandage:{n:"Bandage",i:"🩹",st:10,d:"Heals 25 health.",use:{hp:25},verb:"USE"},
+  club:{n:"Wooden club",i:"🏑",st:1,d:"A heavy stick. Better than fists.",tool:{dmg:30,rng:62,cd:.46,chop:.5,mine:.5,dur:120}},
+  axe:{n:"Stone axe",i:"🪓",st:1,d:"Chops trees fast. A decent weapon too.",tool:{dmg:26,rng:60,cd:.45,chop:2,mine:.5,dur:150}},
+  pick:{n:"Stone pickaxe",i:"⛏️",st:1,d:"Mines stone, iron ore and coal.",tool:{dmg:22,rng:60,cd:.5,chop:.5,mine:2,dur:150}},
+  spear:{n:"Spear",i:"🔱",st:1,d:"Long reach. Hit them before they hit you.",tool:{dmg:40,rng:90,cd:.56,chop:.5,mine:.5,dur:120}},
+  spikebat:{n:"Spiked bat",i:"🏏",st:1,d:"Hits hard and knocks them back.",tool:{dmg:44,rng:66,cd:.46,chop:.5,mine:.5,dur:160,kb:1.7}},
+  machete:{n:"Machete",i:"🔪",st:1,d:"Fast, sharp, reliable.",tool:{dmg:40,rng:62,cd:.32,chop:1,mine:.5,dur:220}},
+  vest:{n:"Leather vest",i:"🦺",st:1,d:"Blocks 25% of incoming damage.",armor:{red:.25,dur:90}},
+  riotvest:{n:"Riot vest",i:"🛡️",st:1,d:"Police issue. Blocks 40% of damage.",armor:{red:.4,dur:140}},
+  milvest:{n:"Military armor",i:"🎖️",st:1,d:"Heavy plates. Blocks 55% of damage.",armor:{red:.55,dur:200}},
+  spring:{n:"Spring",i:"🌀",st:20,d:"Gun part. Found in police lockers."},
+  gunpowder:{n:"Gunpowder",i:"🧂",st:30,d:"Smelt coal and fiber in a furnace."},
+  ammo9:{n:"9mm ammo",i:"🔸",st:60,d:"Pistol rounds."},
+  ammo762:{n:"Rifle ammo",i:"🔶",st:40,d:"Rifle rounds. Hits like a truck."},
+  painkillers:{n:"Painkillers",i:"💊",st:10,d:"Heals 15. Crafts into medkits.",use:{hp:15},verb:"USE"},
+  medkit:{n:"Medkit",i:"🧰",st:5,d:"Heals 60 health.",use:{hp:60},verb:"USE"},
+  fuel:{n:"Fuel",i:"🛢️",st:10,d:"Vehicle fuel. One per trip on a motor vehicle."},
+  keycard:{n:"Vault keycard",i:"🪪",st:5,d:"Opens the stairs to the next vault floor."},
+  pipepistol:{n:"Pipe pistol",i:'<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M3 9h15v3h-5l-1 1h-1l-1 5H6l1-6H3z" fill="#5a4a36" stroke="#a08a62" stroke-width="1"/><rect x="3" y="7" width="13" height="2" fill="#777"/></svg>',st:1,d:"Homemade and loud. Uses 9mm ammo.",tool:{gun:true,ammo:"ammo9",dmg:42,rng:360,cd:.42,dur:260}},
+  pistol:{n:"9mm pistol",i:'<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M3 8h16l1 2h1v3h-6l-1 1h-2l-1 5H6l1-6H3z" fill="#2b2b2b" stroke="#9a9a90" stroke-width="1"/></svg>',st:1,d:"Police sidearm. Accurate and quick. Uses 9mm ammo.",tool:{gun:true,ammo:"ammo9",dmg:52,rng:400,cd:.3,dur:400}},
+  rifle:{n:"Hunting rifle",i:'<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M1 10h15l2-1h5v2h-5l-4 1v2l-4 1-1 3H6l1-4H1z" fill="#4a3220" stroke="#a08a62" stroke-width="1"/><rect x="8" y="8" width="7" height="2" fill="#333"/></svg>',st:1,d:"Huge damage, slow. Uses rifle ammo.",tool:{gun:true,ammo:"ammo762",dmg:110,rng:500,cd:.95,dur:300,pierce:true}},
+  bikewheel:{n:"Bicycle wheel",i:"⭕",st:10,part:true,d:"Bicycle part. Gas Station."},
+  bikeframe:{n:"Bicycle frame",i:"🔺",st:10,part:true,d:"Bicycle part. Old Farmhouse."},
+  bikechain:{n:"Bicycle chain",i:"⛓️",st:10,part:true,d:"Bicycle part. Rock Quarry shack."},
+  mototire:{n:"Motorcycle tire",i:"🛞",st:10,part:true,d:"Motorcycle part. Police Station."},
+  motoframe:{n:"Motorcycle frame",i:"🦴",st:10,part:true,d:"Motorcycle part. Army Checkpoint."},
+  mototank:{n:"Fuel tank",i:"🫙",st:10,part:true,d:"Motorcycle part. Hospital."},
+  motobars:{n:"Handlebars",i:"〰️",st:10,part:true,d:"Motorcycle part. Army Checkpoint."},
+  motoengine:{n:"Motorcycle engine",i:"⚙️",st:10,part:true,d:"Motorcycle part. Guaranteed from the Vault 1 boss."},
+  atvtire:{n:"ATV tire",i:"⚫",st:10,part:true,d:"ATV part. Army Checkpoint."},
+  atvrack:{n:"Cargo rack",i:"🧺",st:10,part:true,d:"ATV part. Vault 2, floor 2."},
+  atvengine:{n:"ATV engine",i:"🔧",st:10,part:true,d:"ATV part. Guaranteed from the Vault 2 boss."},
+  plate:{n:"Armor plate",i:"🟪",st:10,part:true,d:"Truck part. Vault 3 floors."},
+  truckengine:{n:"V8 engine",i:"🏁",st:10,part:true,d:"Truck part. Guaranteed from the Vault 3 boss."}
+};
+const FIST = { dmg:14, rng:48, cd:.36, chop:.5, mine:.5 };
+
+const RECIPES = [
+  {id:"club", need:{wood:5}},
+  {id:"axe", need:{wood:3, stone:2, fiber:1}},
+  {id:"pick", need:{wood:3, stone:3, fiber:1}},
+  {id:"bandage", need:{cloth:2}},
+  {id:"cookedmeat", need:{rawmeat:1}, st:"fire"},
+  {id:"water", need:{dirtywater:1}, st:"fire"},
+  {id:"spear", need:{wood:4, stone:2, fiber:2}, st:"bench"},
+  {id:"spikebat", need:{wood:4, scrap:2}, st:"bench"},
+  {id:"vest", need:{hide:4, fiber:2}, st:"bench"},
+  {id:"ironbar", need:{ironore:2, coal:1}, st:"furnace"},
+  {id:"machete", need:{ironbar:3, cloth:1}, st:"bench"},
+  {id:"gunpowder", need:{coal:2, fiber:1}, st:"furnace", q:2},
+  {id:"pipepistol", need:{ironbar:4, scrap:2, spring:1}, st:"bench"},
+  {id:"ammo9", need:{ironbar:1, gunpowder:1}, st:"bench", q:10},
+  {id:"ammo762", need:{ironbar:2, gunpowder:2}, st:"bench", q:8},
+  {id:"medkit", need:{bandage:2, painkillers:1}, st:"bench"},
+  {id:"fuel", need:{gascan:2}, st:"bench"}
+];
+const STATION_NAME = { fire:"Campfire", bench:"Workbench", furnace:"Furnace", garage:"Garage" };
+
+const CELL = 40;
+const PIECES = {
+  wwall:{n:"Wood wall", i:"🟫", need:{wood:6}, hp:160, box:true, d:"Blocks zombies until they break it."},
+  swall:{n:"Stone wall", i:"⬜", need:{stone:6, wood:2}, hp:420, box:true, d:"Takes a real beating."},
+  door:{n:"Wood door", i:"🚪", need:{wood:8}, hp:200, box:true, door:true, d:"You can walk through. They can't."},
+  spikes:{n:"Spike trap", i:"📍", need:{wood:6, stone:2}, hp:60, trap:true, d:"Hurts zombies that walk over it. Wears out."},
+  chest:{n:"Storage chest", i:"📦", need:{wood:10}, hp:150, r:16, chest:true, d:"Safe storage. Never lost when you die."},
+  fire:{n:"Campfire", i:"🔥", need:{wood:5, stone:3}, hp:100, r:14, station:"fire", d:"Cook meat and boil water."},
+  bench:{n:"Workbench", i:"🛠️", need:{wood:8, stone:4}, hp:150, r:18, station:"bench", d:"Unlocks better weapons and gear."},
+  furnace:{n:"Furnace", i:"🏭", need:{stone:12, wood:2}, hp:200, r:18, station:"furnace", d:"Smelts iron ore into bars."},
+  garage:{n:"Garage", i:"🏚️", need:{wood:20, stone:10, scrap:6}, hp:300, r:22, station:"garage", d:"Build and keep vehicles from the parts you find."}
+};
+const VEH = {
+  bike:  { n:"Bicycle",       i:"🚲", need:{ bikewheel:2, bikeframe:1, bikechain:1 },                          mult:.5,  maxTier:3, fuel:false, slots:0,  d:"Halves travel time to tier 1–3 zones." },
+  moto:  { n:"Motorcycle",    i:"🏍️", need:{ mototire:2, motoframe:1, mototank:1, motobars:1, motoengine:1 }, mult:.25, maxTier:9, fuel:true,  slots:10, d:"Cuts travel time by 75%. +10 backpack slots. 1 fuel per trip." },
+  atv:   { n:"ATV",           i:"🛻", need:{ atvtire:4, atvrack:1, atvengine:1 },                              mult:.25, maxTier:9, fuel:true,  slots:6,  d:"Hauls more loot home: +6 more backpack slots." },
+  truck: { n:"Armored Truck", i:"🚚", need:{ plate:4, truckengine:1 },                                         mult:.2,  maxTier:9, fuel:true,  slots:6,  d:"Fastest travel, +6 slots, and it guards your camp on horde nights." }
+};
+const VEH_ORDER = ["bike", "moto", "atv", "truck"];
+
+const BAG_SLOTS = 16, CHEST_SLOTS = 24;
+function emptySlots(n) { return new Array(n).fill(null); }
+function newSlot(id, n) {
+  const d = ITEMS[id], s = { id, n };
+  if (d.tool) s.dur = d.tool.dur;
+  if (d.armor) s.dur = d.armor.dur;
+  return s;
+}
+function addTo(slots, id, n) {
+  const d = ITEMS[id];
+  if (d.st > 1) for (const s of slots) {
+    if (s && s.id === id && s.n < d.st) { const k = Math.min(n, d.st - s.n); s.n += k; n -= k; if (!n) return 0; }
+  }
+  for (let i = 0; i < slots.length && n > 0; i++) {
+    if (!slots[i]) { const k = Math.min(n, d.st); slots[i] = newSlot(id, k); n -= k; }
+  }
+  return n;
+}
+function putSlot(slots, s) { // move a whole slot object (keeps durability)
+  if (ITEMS[s.id].st > 1) { const left = addTo(slots, s.id, s.n); if (left) { s.n = left; return false; } return true; }
+  const i = slots.indexOf(null); if (i < 0) return false; slots[i] = s; return true;
+}
+function countIn(slots, id) { let c = 0; for (const s of slots) if (s && s.id === id) c += s.n; return c; }
+function removeFrom(slots, id, n) {
+  for (let i = slots.length - 1; i >= 0 && n > 0; i--) {
+    const s = slots[i]; if (!s || s.id !== id) continue;
+    const k = Math.min(n, s.n); s.n -= k; n -= k; if (s.n <= 0) slots[i] = null;
+  }
+}
+function hasAll(need) { for (const k in need) if (countIn(bag, k) < need[k]) return false; return true; }
+function payAll(need) { for (const k in need) removeFrom(bag, k, need[k]); }
+
+// =============== world & zones ===============
+const DAY = 480; // real seconds per in-game day
+const ZONES = {
+  home:   { n:"Abel's Camp",   tier:0, hrs:0, W:2200, seed:11, trees:110, rocks:45,  bushes:45,  wrecks:3,  ponds:1, zcap:4,  rabbits:4,  mix:{walker:.8, crawler:.2}, d:"Your base. Build, store and craft here." },
+  woods:  { n:"Pine Woods",    tier:1, hrs:1, W:2600, seed:22, trees:330, rocks:35,  bushes:130, wrecks:2,  ponds:3, zcap:7,  rabbits:14, mix:{walker:.75, crawler:.25}, d:"Wood, berries, fiber and rabbits." },
+  quarry: { n:"Rock Quarry",   tier:1, hrs:1, W:2400, seed:33, trees:40,  rocks:230, bushes:20,  wrecks:3,  ponds:1, zcap:8,  rabbits:2,  mix:{walker:.6, crawler:.4}, ore:true, d:"Stone, iron ore and coal." },
+  gas:    { n:"Gas Station",   tier:2, hrs:2, W:2400, seed:44, trees:80,  rocks:30,  bushes:20,  wrecks:14, ponds:0, zcap:13, rabbits:2,  mix:{walker:.55, runner:.35, bloater:.1}, packs:true, building:"gas", d:"Scrap, cloth, gas cans, canned food." },
+  farm:   { n:"Old Farmhouse", tier:2, hrs:2, W:2400, seed:55, trees:90,  rocks:20,  bushes:80,  wrecks:3,  ponds:2, zcap:12, rabbits:8,  mix:{walker:.5, runner:.35, bloater:.15}, packs:true, building:"farm", d:"Seeds, rope, water and old tools." },
+  police: { n:"Police Station", tier:3, hrs:4, W:2400, seed:66, trees:60,  rocks:20,  bushes:20,  wrecks:10, ponds:0, zcap:15, rabbits:0,  mix:{walker:.45, runner:.35, screamer:.2}, packs:true, building:"police", d:"Pistols, ammo, light armor, motorcycle tires." },
+  hospital:{ n:"Hospital",     tier:3, hrs:4, W:2400, seed:77, trees:50,  rocks:15,  bushes:20,  wrecks:8,  ponds:0, zcap:15, rabbits:0,  mix:{walker:.45, bloater:.3, screamer:.25}, packs:true, building:"hospital", d:"Medkits, painkillers and a rare fuel tank." },
+  army:   { n:"Army Checkpoint", tier:4, hrs:6, W:2600, seed:88, trees:70, rocks:40,  bushes:15,  wrecks:12, ponds:0, zcap:17, rabbits:0,  mix:{walker:.35, runner:.25, brute:.15, armored:.25}, packs:true, building:"army", d:"Rifles, heavy armor, motorcycle and ATV parts." },
+  vault1: { n:"Vault 1",       tier:5, hrs:8, entry:"v1f1", d:"Three sealed floors. The Warden waits at the bottom with a motorcycle engine." },
+  vault2: { n:"Vault 2",       tier:5, hrs:8, entry:"v2f1", d:"Mother Bloat breeds below. Cargo rack on floor 2, ATV engine from the boss." },
+  vault3: { n:"Vault 3",       tier:5, hrs:8, entry:"v3f1", d:"Armor plates on every floor. The Iron Colossus guards a V8 engine." }
+};
+const BOSS = { 1:{ id:"boss1", n:"THE WARDEN", drop:"motoengine" }, 2:{ id:"boss2", n:"MOTHER BLOAT", drop:"atvengine" }, 3:{ id:"boss3", n:"THE IRON COLOSSUS", drop:"truckengine" } };
+for (let v = 1; v <= 3; v++) for (let f = 1; f <= 3; f++) {
+  ZONES["v" + v + "f" + f] = { n:"Vault " + v + " · Floor " + f, tier:5, hrs:8, W:f === 3 ? 1300 : 1600, seed:100 + v * 10 + f, vault:v, floor:f, hidden:true,
+    trees:0, rocks:0, bushes:0, wrecks:0, ponds:0, zcap:0, rabbits:0, mix:v === 1 ? {walker:.4, runner:.3, brute:.15, armored:.15} : v === 2 ? {walker:.3, bloater:.35, crawler:.2, screamer:.15} : {armored:.4, brute:.25, runner:.35} };
+}
+const ZONE_ORDER = ["home", "woods", "quarry", "gas", "farm", "police", "hospital", "army", "vault1", "vault2", "vault3"];
+function baseZone(id) { const Z = ZONES[id]; return Z && Z.vault ? "vault" + Z.vault : id; }
+const CAMP = { x: 1100, y: 1100, r: 300 };
+let WORLD = 2200, obs = [], decals = [], curZone = "home";
+const zoneCache = {};
+const LOOT = {
+  wreck:   () => { const l = [["scrap", ri(1, 3)], ["cloth", ri(1, 2)]]; if (R() < .45) l.push(["canfood", 1]); if (R() < .45) l.push(["water", 1]); if (R() < .25) l.push(["fiber", ri(2, 3)]); if (R() < .15) l.push(["gascan", 1]); return l; },
+  shelf:   () => { const l = [["canfood", ri(1, 2)], ["cloth", ri(1, 2)]]; if (R() < .6) l.push(["scrap", ri(1, 2)]); if (R() < .5) l.push(["water", 1]); return l; },
+  locker:  () => { const l = [["scrap", ri(2, 3)], ["cloth", 1]]; if (R() < .5) l.push(["rope", 1]); if (R() < .3) l.push(["bandage", 1]); return l; },
+  pump:    () => [["gascan", 1]],
+  fridge:  () => { const l = [["water", ri(1, 2)]]; if (R() < .5) l.push(["canfood", 1]); return l; },
+  cabinet: () => { const l = [["rope", 1], ["seeds", ri(1, 3)], ["cloth", 1]]; if (R() < .35) l.push(["bandage", 1]); return l; },
+  toolbox: () => { const l = [["scrap", ri(1, 2)], ["rope", 1]]; if (R() < .18) l.push([R() < .5 ? "axe" : "pick", 1]); return l; },
+  evidence:() => { const l = [["ammo9", ri(6, 12)], ["spring", 1]]; if (R() < .2) l.push(["pistol", 1]); if (R() < .3) l.push(["gunpowder", ri(1, 2)]); return l; },
+  desk:    () => { const l = [["cloth", 1], ["ammo9", ri(2, 5)]]; if (R() < .4) l.push(["spring", 1]); if (R() < .12) l.push(["riotvest", 1]); return l; },
+  medcab:  () => { const l = [["bandage", ri(1, 2)], ["painkillers", ri(1, 2)]]; if (R() < .25) l.push(["medkit", 1]); return l; },
+  bed:     () => { const l = [["cloth", ri(1, 3)]]; if (R() < .3) l.push(["painkillers", 1]); return l; },
+  milcrate:() => { const l = [["ammo762", ri(4, 8)], ["ammo9", ri(5, 10)], ["gunpowder", ri(1, 3)]]; if (R() < .14) l.push(["rifle", 1]); if (R() < .1) l.push(["milvest", 1]); if (R() < .4) l.push(["ironbar", ri(1, 2)]); return l; },
+  vaultbox:() => { const l = [["ammo9", ri(8, 14)], ["ammo762", ri(3, 6)], ["medkit", 1], ["ironbar", ri(2, 3)]]; if (R() < .25) l.push(["milvest", 1]); return l; }
+};
+const CACHE_NAME = { shelf:"Shelf", locker:"Locker", pump:"Fuel pump", fridge:"Fridge", cabinet:"Cabinet", toolbox:"Toolbox", evidence:"Evidence locker", desk:"Desk", medcab:"Medicine cabinet", bed:"Hospital bed", milcrate:"Military crate", vaultbox:"Vault locker" };
+// vehicle parts: which zones can drop which part (bad-luck rule guarantees one after 5 empty runs)
+const PART_SRC = { gas:["bikewheel"], farm:["bikeframe"], quarry:["bikechain"], police:["mototire"], hospital:["mototank"], army:["motoframe", "motobars", "atvtire"] };
+const VAULT_FIXED = { v2f2:[["atvrack", 1]], v3f1:[["plate", 2]], v3f2:[["plate", 2]] };
+
+function genZone(id) {
+  const Z = ZONES[id], W = Z.W, list = [], dec = [];
+  seed = Z.seed * 7919 + 13;
+  const homeC = id === "home";
+  const exit = homeC ? { x: CAMP.x, y: CAMP.y + CAMP.r + 70 } : { x: W / 2, y: W - 150 };
+  function okSpot(x, y, r, gap) {
+    if (homeC && dist(x, y, CAMP.x, CAMP.y) < CAMP.r + 50 + r) return false;
+    if (dist(x, y, exit.x, exit.y) < 120 + r) return false;
+    for (const o of list) {
+      if (o.box) { if (Math.abs(x - o.x) < o.w / 2 + r + 40 && Math.abs(y - o.y) < o.h / 2 + r + 40) return false; continue; }
+      if (o.type === "floor") { if (Math.abs(x - o.x) < o.w / 2 + r + 60 && Math.abs(y - o.y) < o.h / 2 + r + 60) return false; continue; }
+      if (dist(x, y, o.x, o.y) < o.r + r + (gap == null ? 30 : gap)) return false;
+    }
+    return true;
+  }
+  const spot = (r, gap, edge) => { for (let t = 0; t < 40; t++) { const e = edge || 80, x = e + rnd() * (W - e * 2), y = e + rnd() * (W - e * 2); if (okSpot(x, y, r, gap)) return { x, y }; } return null; };
+  function rockPts(r) { const p = []; for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, k = 0.75 + rnd() * 0.3; p.push([Math.cos(a) * r * k, Math.sin(a) * r * k]); } return p; }
+  function building(cx, cy, w, h, floorCol, caches) {
+    list.push({ type: "floor", nc: true, x: cx, y: cy, w, h, col: floorCol, r: Math.max(w, h) / 2 });
+    const t = 14, door = 70;
+    list.push({ type: "wall", box: true, x: cx, y: cy - h / 2, w: w + t, h: t });
+    list.push({ type: "wall", box: true, x: cx - w / 2, y: cy, w: t, h: h + t });
+    list.push({ type: "wall", box: true, x: cx + w / 2, y: cy, w: t, h: h + t });
+    const seg = (w - door) / 2;
+    list.push({ type: "wall", box: true, x: cx - w / 2 + seg / 2, y: cy + h / 2, w: seg + t / 2, h: t });
+    list.push({ type: "wall", box: true, x: cx + w / 2 - seg / 2, y: cy + h / 2, w: seg + t / 2, h: t });
+    for (const c of caches) list.push({ type: "cache", kind: c[0], x: cx + c[1], y: cy + c[2], r: 15, lootAt: 0, loot: null });
+  }
+  if (Z.vault) return genVaultFloor(id, Z, list, dec, W);
+  if (homeC) {
+    list.push({ x: CAMP.x - 150, y: CAMP.y - 100, r: 34, type: "tent", rot: -0.2, col: "#4b5a3c" });
+    list.push({ x: CAMP.x + 145, y: CAMP.y - 115, r: 34, type: "tent", rot: 0.25, col: "#5c4a35" });
+    list.push({ x: CAMP.x + 95, y: CAMP.y + 115, r: 15, type: "crate", start: [["wood", 6], ["berries", 4]] });
+    list.push({ x: CAMP.x + 124, y: CAMP.y + 96, r: 13, type: "crate", start: [["cloth", 2], ["water", 2]] });
+    list.push({ x: CAMP.x - 115, y: CAMP.y + 120, r: 15, type: "crate", start: [["fiber", 3], ["stone", 3], ["canfood", 1]] });
+    list.push({ x: CAMP.x, y: CAMP.y, r: 14, type: "fire" });
+    list.push({ x: CAMP.x - 46, y: CAMP.y + 8, r: 10, type: "log", rot: 1.4 });
+    list.push({ x: CAMP.x + 46, y: CAMP.y - 6, r: 10, type: "log", rot: 1.7 });
+    for (const c of list) if (c.start) c.loot = c.start.map((x) => x.slice());
+  }
+  list.push({ type: "exit", x: exit.x, y: exit.y, r: 20 });
+  if (Z.building === "gas") {
+    building(W / 2, W / 2 - 120, 380, 230, "#3a3a36", [["shelf", -140, -70], ["shelf", -60, -70], ["shelf", 20, -70], ["locker", 150, -70], ["shelf", -140, 30], ["locker", 150, 40]]);
+    for (const dx of [-120, 0, 120]) list.push({ type: "cache", kind: "pump", x: W / 2 + dx, y: W / 2 + 120, r: 14, lootAt: 0, loot: null });
+    list.push({ type: "floor", nc: true, x: W / 2, y: W / 2 + 120, w: 460, h: 120, col: "#2c2c2a", r: 230 });
+  }
+  if (id === "quarry") building(W / 2 + 300, W / 2 - 300, 200, 150, "#3e3120", [["toolbox", -50, -30], ["toolbox", 50, -30]]);
+  if (Z.building === "police") {
+    building(W / 2, W / 2 - 160, 460, 280, "#2e3238", [["evidence", -170, -90], ["evidence", -90, -90], ["desk", 30, -90], ["desk", 120, -90], ["desk", -170, 40], ["locker", 170, 30], ["desk", 60, 40]]);
+  }
+  if (Z.building === "hospital") {
+    building(W / 2 - 160, W / 2 - 160, 360, 260, "#3a3e3e", [["medcab", -130, -85], ["medcab", -40, -85], ["bed", 60, -85], ["bed", 130, -85], ["bed", -130, 40], ["medcab", 120, 40]]);
+    building(W / 2 + 260, W / 2 - 120, 240, 200, "#3a3e3e", [["medcab", -70, -60], ["bed", 70, -60], ["shelf", 0, 30]]);
+  }
+  if (Z.building === "army") {
+    building(W / 2 - 200, W / 2 - 200, 320, 220, "#3a3f30", [["milcrate", -110, -70], ["milcrate", 0, -70], ["milcrate", 110, -70], ["locker", -110, 40]]);
+    building(W / 2 + 240, W / 2 - 160, 280, 220, "#3a3f30", [["milcrate", -90, -70], ["toolbox", 0, -70], ["milcrate", 90, -70], ["locker", 90, 40]]);
+    for (let i = 0; i < 6; i++) list.push({ type: "wall", box: true, x: W / 2 - 300 + i * 120, y: W / 2 + 160, w: 80, h: 22, sandbag: true });
+  }
+  if (Z.building === "farm") {
+    building(W / 2 - 220, W / 2 - 100, 300, 230, "#4a3a28", [["fridge", -110, -70], ["cabinet", 0, -70], ["cabinet", 110, -70], ["fridge", -110, 40]]);
+    building(W / 2 + 230, W / 2 - 80, 260, 200, "#3e3120", [["toolbox", -80, -50], ["toolbox", 80, -50], ["cabinet", 0, 30]]);
+  }
+  for (let i = 0; i < Z.ponds; i++) { const p = spot(70, 60, 200); if (p) list.push({ x: p.x, y: p.y, r: 55 + rnd() * 25, type: "pond" }); }
+  for (let i = 0; i < Z.wrecks; i++) { const p = spot(30, 60, 160); if (p) list.push({ x: p.x, y: p.y, r: 28, type: "wreck", rot: rnd() * Math.PI, col: ["#5a3a2a", "#3e4a52", "#4d4a33"][i % 3], lootAt: 0, loot: null }); }
+  for (let i = 0; i < Z.trees; i++) { const r = 18 + rnd() * 14, x = 80 + rnd() * (W - 160), y = 80 + rnd() * (W - 160); if (okSpot(x, y, r)) list.push({ x, y, r, type: "tree", tone: rnd(), ch: 8, depl: 0 }); }
+  for (let i = 0; i < Z.rocks; i++) { const r = 13 + rnd() * (Z.ore ? 14 : 10), x = 80 + rnd() * (W - 160), y = 80 + rnd() * (W - 160); if (okSpot(x, y, r, Z.ore ? 14 : 30)) list.push({ x, y, r, type: "rock", pts: rockPts(r), ch: 6, depl: 0, ore: !!Z.ore }); }
+  for (let i = 0; i < Z.bushes; i++) { const r = 14 + rnd() * 5, x = 80 + rnd() * (W - 160), y = 80 + rnd() * (W - 160); if (okSpot(x, y, r, 10)) list.push({ x, y, r, type: "bush", nc: true, depl: 0, berryRot: rnd() * 6 }); }
+  const ground = id === "quarry" ? [60, 58, 52] : id === "gas" ? [46, 46, 40] : [28, 36, 25];
+  for (let i = 0; i < W * 0.32; i++) dec.push({ x: rnd() * W, y: rnd() * W, r: 10 + rnd() * 50, a: 0.05 + rnd() * 0.12, dark: rnd() < 0.6, tuft: id !== "quarry" && rnd() < 0.35 });
+  return { id, W, obs: list, decals: dec, exit, ground: "rgb(" + ground.join(",") + ")" };
+}
+function genVaultFloor(id, Z, list, dec, W) {
+  const boss = Z.floor === 3;
+  const exit = { x: W / 2, y: W - 120 };
+  list.push({ type: "exit", x: exit.x, y: exit.y, r: 20, elevator: true });
+  if (!boss) list.push({ type: "stairs", x: W / 2, y: 110, r: 26 });
+  const pil = boss ? [[-260, -200], [260, -200], [-260, 160], [260, 160]] : [];
+  if (!boss) for (let gx = 0; gx < 5; gx++) for (let gy = 0; gy < 5; gy++) { if (rnd() < 0.45) continue; pil.push([(gx - 2) * 260 + (rnd() - 0.5) * 60, (gy - 2) * 240 + (rnd() - 0.5) * 60]); }
+  for (const p of pil) { const x = W / 2 + p[0], y = W / 2 + p[1]; if (dist(x, y, exit.x, exit.y) < 160 || dist(x, y, W / 2, 110) < 160) continue; list.push({ type: "wall", box: true, x, y, w: 56, h: 56, pillar: true }); }
+  if (!boss) {
+    const spots = [[90, 260], [W - 90, 260], [90, W - 300], [W - 90, W - 300]];
+    spots.forEach((p, i) => list.push({ type: "cache", kind: i === 0 ? "vaultbox" : "locker", x: p[0], y: p[1], r: 15, lootAt: 0, loot: null, vaultFixed: i === 0 ? id : null }));
+  }
+  for (let i = 0; i < W * 0.2; i++) dec.push({ x: rnd() * W, y: rnd() * W, r: 10 + rnd() * 40, a: 0.05 + rnd() * 0.1, dark: rnd() < 0.7, tuft: false });
+  return { id, W, obs: list, decals: dec, exit, ground: "rgb(56,56,58)", vault: true };
+}
+function getZone(id) { if (!zoneCache[id]) zoneCache[id] = genZone(id); return zoneCache[id]; }
+function setZone(id) {
+  const z = getZone(id);
+  curZone = id; WORLD = z.W; obs = z.obs; decals = z.decals;
+}
+function zoneHours(from, to) {
+  if (from === to) return 0;
+  if (from === "home") return ZONES[to].hrs;
+  if (to === "home") return ZONES[from].hrs;
+  return Math.max(1, ZONES[from].hrs + ZONES[to].hrs - 1);
+}
+const NOB = [];
+function hb() { return curZone === "home" ? builds : NOB; }
+
+// =============== state ===============
+const P = { x: 0, y: 0, r: 14, hp: 100, max: 100, st: 100, hu: 100, th: 100, tired: false, stDelay: 0,
+  face: -Math.PI / 2, swing: 0, swingCd: 0, dodge: 0, dodgeCd: 0, ddx: 0, ddy: 0, inv: 0, alive: true, walk: 0,
+  weapon: null, armor: null };
+let bag = emptySlots(BAG_SLOTS);
+let builds = [];
+let zombies = [], rabbits = [], parts = [], nums = [], toasts = [];
+let grave = null;
+let state = "title", deadTimer = 0, spawnTimer = 0, grace = 0, kills = 0;
+let shake = 0, hurtFlash = 0, time = 0, wt = DAY * 0.25, saveTimer = 0, starveTick = 0, regrowTick = 0;
+let panel = null, buildMode = null, useTarget = null;
+let drops = [];                       // supply crates at camp
+let horde = { warned: 0, done: 0, active: false, left: 0, spawnT: 0, away: 0 };
+let garage = {}, pity = {}, runPart = false, vaultsDone = {}, won = false, tracers = [], rings = [], loose = [];
+
+const SWING_TIME = 0.22;
+const ZTYPES = {
+  walker:  { hp:100, sp:[48, 68],   dmg:[12, 16], r:15 },
+  runner:  { hp:65,  sp:[108, 124], dmg:[9, 12],  r:14 },
+  crawler: { hp:60,  sp:[30, 38],   dmg:[10, 14], r:13 },
+  bloater: { hp:150, sp:[34, 40],   dmg:[14, 18], r:19 },
+  screamer:{ hp:70,  sp:[56, 66],   dmg:[8, 11],  r:14 },
+  brute:   { hp:420, sp:[36, 42],   dmg:[28, 34], r:24 },
+  armored: { hp:170, sp:[44, 52],   dmg:[14, 18], r:17 },
+  boss1:   { hp:1400, sp:[58, 58],  dmg:[30, 30], r:32, boss:1 },
+  boss2:   { hp:1700, sp:[30, 30],  dmg:[22, 22], r:38, boss:2 },
+  boss3:   { hp:2600, sp:[46, 46],  dmg:[32, 32], r:36, boss:3 }
+};
+const HORDE_MIX = { walker:.5, runner:.25, crawler:.15, bloater:.1 };
+function pickType(mix) { let r = R(), t = "walker"; for (const k in mix) { t = k; r -= mix[k]; if (r <= 0) break; } return t; }
+function isHordeDay() { return dayNum() % 5 === 0; }
+const AGGRO = 270, LOSE = 440;
+
+function dayNum() { return Math.floor(wt / DAY) + 1; }
+function hour() { return ((wt % DAY) / DAY) * 24; }
+function nightAmt() {
+  const h = hour();
+  if (h >= 20 || h < 5) return 1;
+  if (h >= 18) return (h - 18) / 2;
+  if (h < 7) return 1 - (h - 5) / 2;
+  return 0;
+}
+function curTool() { return P.weapon ? ITEMS[P.weapon.id].tool : FIST; }
+
+// =============== sound (made in code, no files) ===============
+let AC = null, soundOn = load("abels_sound") !== "0", lastSfx = {}, groanT = 3;
+function audio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } } if (AC && AC.state === "suspended") AC.resume(); return AC; }
+document.addEventListener("pointerdown", audio);
+function tone(f, dur, type, vol, f2, delay) {
+  const t0 = AC.currentTime + (delay || 0), o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || "sine"; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function hiss(dur, vol, freq, delay) {
+  const t0 = AC.currentTime + (delay || 0), n = Math.floor(AC.sampleRate * dur), buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = buf; f.type = "lowpass"; f.frequency.value = freq; g.gain.value = vol;
+  src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t0);
+}
+const SFX = {
+  swing: () => hiss(0.09, 0.12, 1600),
+  hit: () => { hiss(0.1, 0.35, 600); tone(110, 0.12, "square", 0.08, 55); },
+  kill: () => { tone(90, 0.3, "sawtooth", 0.08, 40); hiss(0.2, 0.2, 400); },
+  shot: () => { hiss(0.14, 0.6, 3000); tone(160, 0.1, "square", 0.12, 50); },
+  rifle: () => { hiss(0.3, 0.8, 2200); tone(90, 0.25, "square", 0.15, 30); },
+  boom: () => { hiss(0.6, 0.7, 500); tone(70, 0.6, "sine", 0.3, 25); },
+  slam: () => { hiss(0.35, 0.6, 300); tone(55, 0.4, "sine", 0.35, 25); },
+  roar: () => { tone(80, 0.6, "sawtooth", 0.12, 140); tone(60, 0.6, "sawtooth", 0.1, 100); },
+  scream: () => { tone(900, 0.5, "sawtooth", 0.06, 1600); tone(1300, 0.45, "square", 0.03, 700); },
+  groan: () => tone(70 + Math.random() * 40, 0.7, "sawtooth", 0.035, 50),
+  hurt: () => { tone(220, 0.15, "square", 0.1, 110); },
+  loot: () => { tone(660, 0.08, "triangle", 0.1, 880); tone(990, 0.1, "triangle", 0.08, 1320, 0.07); },
+  craft: () => { tone(330, 0.08, "square", 0.06); tone(495, 0.1, "square", 0.06, null, 0.08); tone(660, 0.14, "triangle", 0.08, null, 0.16); },
+  deny: () => tone(150, 0.15, "square", 0.08, 120),
+  travel: () => { tone(220, 0.25, "triangle", 0.08, 330); },
+  horde: () => { tone(110, 1.4, "sawtooth", 0.1, 100); tone(165, 1.4, "sawtooth", 0.06, 150); }
+};
+function sfx(n) {
+  if (!soundOn || !AC || !SFX[n]) return;
+  const now = performance.now(); if (lastSfx[n] && now - lastSfx[n] < 45) return; lastSfx[n] = now;
+  try { SFX[n](); } catch (e) {}
+}
+
+// =============== toasts ===============
+const toastEl = document.getElementById("toasts");
+function toast(txt) {
+  const last = toasts[toasts.length - 1];
+  if (last && last.txt === txt && last.t > 0.6) { last.t = 2.2; return; }
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = txt;
+  toastEl.appendChild(el);
+  toasts.push({ txt, t: 2.2, el });
+  while (toasts.length > 4) { const o = toasts.shift(); o.el.remove(); }
+}
+function gain(id, n) {
+  if (n <= 0) return 0;
+  const left = addTo(bag, id, n);
+  const got = n - left;
+  if (got > 0) toast("+" + got + " " + ITEMS[id].n);
+  if (left > 0) toast("Backpack full");
+  return left;
+}
+
+// =============== input ===============
+const input = { jx: 0, jy: 0, atk: false, run: false, dodgeReq: false, useReq: false };
+const keys = {};
+const joy = { id: null, bx: 0, by: 0 };
+const JR = 60;
+
+window.addEventListener("keydown", (e) => {
+  if (e.repeat) { keys[e.code] = true; return; }
+  keys[e.code] = true;
+  if (e.code === "Space") { input.atk = true; e.preventDefault(); }
+  if (e.code === "KeyQ") input.dodgeReq = true;
+  if (e.code === "KeyE" || e.code === "KeyF") input.useReq = true;
+  if (e.code === "KeyB" && state === "play") openPanel("bag");
+  if (e.code === "KeyC" && state === "play") openPanel("craft");
+  if (e.code === "Escape") { if (panel) closePanel(); else if (buildMode) endBuild(); }
+  if (state === "dead" && (e.code === "Space" || e.code === "Enter") && deadTimer <= 0) respawn();
+});
+window.addEventListener("keyup", (e) => { keys[e.code] = false; if (e.code === "Space") input.atk = false; });
+
+cv.addEventListener("pointerdown", (e) => {
+  if (state !== "play") return;
+  if (e.pointerType === "mouse") { input.atk = true; return; }
+  if (joy.id === null && e.clientX < VW * 0.5) { joy.id = e.pointerId; joy.bx = e.clientX; joy.by = e.clientY; input.jx = 0; input.jy = 0; }
+});
+cv.addEventListener("pointermove", (e) => {
+  if (e.pointerId !== joy.id) return;
+  let dx = e.clientX - joy.bx, dy = e.clientY - joy.by;
+  const l = Math.hypot(dx, dy);
+  if (l > JR) { joy.bx += (dx / l) * (l - JR); joy.by += (dy / l) * (l - JR); dx = e.clientX - joy.bx; dy = e.clientY - joy.by; }
+  input.jx = dx / JR; input.jy = dy / JR;
+});
+function endJoy(e) {
+  if (e.pointerType === "mouse") input.atk = false;
+  if (e.pointerId !== joy.id) return;
+  joy.id = null; input.jx = 0; input.jy = 0;
+}
+cv.addEventListener("pointerup", endJoy);
+cv.addEventListener("pointercancel", endJoy);
+function clearInput() { joy.id = null; input.jx = 0; input.jy = 0; input.atk = false; input.run = false; for (const b of document.querySelectorAll(".btn.on")) b.classList.remove("on"); }
+
+function bindBtn(id, onDown, onUp) {
+  const el = document.getElementById(id);
+  const down = (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("on"); onDown(); };
+  const up = (e) => { e.preventDefault(); el.classList.remove("on"); if (onUp) onUp(); };
+  el.addEventListener("pointerdown", down);
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+  el.addEventListener("pointerleave", up);
+}
+bindBtn("atk", () => { input.atk = true; }, () => { input.atk = false; });
+bindBtn("run", () => { input.run = true; }, () => { input.run = false; });
+bindBtn("dodge", () => { input.dodgeReq = true; });
+bindBtn("use", () => { input.useReq = true; });
+
+document.getElementById("mbag").addEventListener("click", () => openPanel("bag"));
+document.getElementById("mcraft").addEventListener("click", () => openPanel("craft"));
+document.getElementById("mbuild").addEventListener("click", () => openPanel("build"));
+const msound = document.getElementById("msound");
+function paintSound() { msound.textContent = soundOn ? "🔊" : "🔇"; }
+paintSound();
+msound.addEventListener("click", () => { soundOn = !soundOn; store("abels_sound", soundOn ? "1" : "0"); paintSound(); if (soundOn) { audio(); sfx("loot"); } });
+// save backup codes
+const bscreen = document.getElementById("backup"), bmsg = document.getElementById("bmsg");
+function toCode(str) { return btoa(unescape(encodeURIComponent(str))); }
+function fromCode(code) { return decodeURIComponent(escape(atob(code.trim()))); }
+document.getElementById("tbackup").addEventListener("click", () => {
+  const raw = load(SAVE_KEY);
+  document.getElementById("bcode").value = raw ? "ABEL1:" + toCode(raw) : "No save yet. Play a bit first.";
+  bmsg.textContent = ""; bscreen.classList.remove("hide");
+});
+document.getElementById("bcopy").addEventListener("click", () => {
+  const ta = document.getElementById("bcode");
+  ta.select(); ta.setSelectionRange(0, 999999);
+  const done = () => { bmsg.textContent = "Copied. Paste it into Notes."; };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, () => { document.execCommand("copy"); done(); });
+  else { document.execCommand("copy"); done(); }
+});
+document.getElementById("brestore").addEventListener("click", () => {
+  try {
+    let code = document.getElementById("bpaste").value.trim();
+    if (code.startsWith("ABEL1:")) code = code.slice(6);
+    const raw = fromCode(code), d = JSON.parse(raw);
+    if (!d || d.v !== 2) throw new Error("bad");
+    store(SAVE_KEY, raw); refreshTitle();
+    bmsg.textContent = "Restored! Tap BACK, then CONTINUE.";
+  } catch (e) { bmsg.textContent = "That code didn't work. Make sure you pasted all of it."; }
+});
+document.getElementById("bclose").addEventListener("click", () => bscreen.classList.add("hide"));
+document.getElementById("wkeep").addEventListener("click", () => { document.getElementById("win").classList.add("hide"); state = "play"; clearInput(); });
+function showWin() {
+  state = "menu";
+  const vc = Object.keys(vaultsDone).length;
+  document.getElementById("winstats").textContent = "Day " + dayNum() + " · " + kills + " zombies down · " + vc + (vc === 1 ? " vault" : " vaults") + " cleared";
+  document.getElementById("win").classList.remove("hide");
+  sfx("horde");
+}
+document.getElementById("pclose").addEventListener("click", closePanel);
+document.getElementById("bplace").addEventListener("click", placePiece);
+document.getElementById("bdone").addEventListener("click", endBuild);
+document.getElementById("tnew").addEventListener("click", newGameClick);
+document.getElementById("tcont").addEventListener("click", () => { if (loadGame()) startPlay(); else newGame(); });
+document.getElementById("dead").addEventListener("pointerdown", () => { if (deadTimer <= 0) respawn(); });
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("touchmove", (e) => { if (!e.target.closest(".scroll")) e.preventDefault(); }, { passive: false });
+
+// =============== UI refs ===============
+const ui = {
+  hud: document.getElementById("hud"), btns: document.getElementById("btns"),
+  title: document.getElementById("title"), dead: document.getElementById("dead"),
+  hp: document.querySelector("#hpb i"), st: document.querySelector("#stb i"), hu: document.querySelector("#hub i"), th: document.querySelector("#thb i"),
+  hpb: document.getElementById("hpb"), stb: document.getElementById("stb"), hub: document.getElementById("hub"), thb: document.getElementById("thb"),
+  day: document.getElementById("day"), kills: document.getElementById("kills"), deadstats: document.getElementById("deadstats"),
+  use: document.getElementById("use"), atkic: document.getElementById("atkic"), atklab: document.getElementById("atklab"),
+  panel: document.getElementById("panel"), ptitle: document.getElementById("ptitle"), pbody: document.getElementById("pbody"),
+  buildbar: document.getElementById("buildbar"), bhint: document.getElementById("bhint"), bplace: document.getElementById("bplace"),
+  tcont: document.getElementById("tcont"), tnew: document.getElementById("tnew"), tsave: document.getElementById("tsave")
+};
+
+// =============== save / load ===============
+const SAVE_KEY = "abels_save_v2";
+function serZone(list) {
+  const o = [];
+  list.forEach((b, i) => {
+    if (b.type === "tree" || b.type === "rock" || b.type === "bush") { if (b.depl || (b.ch != null && b.ch < (b.type === "tree" ? 8 : 6))) o.push([i, b.ch || 0, b.depl || 0]); }
+    else if (b.type === "crate" || b.type === "wreck" || b.type === "cache") o.push([i, 0, 0, b.lootAt || 0, b.loot]);
+  });
+  return o;
+}
+function applyZone(list, rows) {
+  for (const r of rows || []) {
+    const o = list[r[0]]; if (!o) continue;
+    if (o.type === "crate" || o.type === "wreck" || o.type === "cache") { o.lootAt = r[3] || 0; o.loot = r[4] === undefined ? o.loot : r[4]; }
+    else { o.ch = r[1]; o.depl = r[2]; }
+  }
+}
+function snapshot() {
+  const zones = {};
+  for (const id in zoneCache) zones[id] = serZone(zoneCache[id].obs);
+  return {
+    v: 2, wt, kills, zone: curZone, horde: { warned: horde.warned, done: horde.done, away: horde.away }, garage, pity, vaultsDone, won,
+    p: { x: P.x, y: P.y, hp: P.hp, st: P.st, hu: P.hu, th: P.th, face: P.face, alive: P.alive },
+    bag, weapon: P.weapon, armor: P.armor, grave, drops,
+    builds: builds.map((b) => ({ t: b.t, gx: b.gx, gy: b.gy, hp: b.hp, items: b.items || null })),
+    zones
+  };
+}
+function save() {
+  if (state === "title") return;
+  if (!store(SAVE_KEY, JSON.stringify(snapshot()))) toast("Could not save on this device");
+}
+function readSave() { const s = load(SAVE_KEY); if (!s) return null; try { const d = JSON.parse(s); return d && d.v === 2 ? d : null; } catch (e) { return null; } }
+function loadGame() {
+  const d = readSave(); if (!d) return false;
+  resetWorld();
+  wt = d.wt; kills = d.kills || 0;
+  for (const id in d.zones || {}) if (ZONES[id]) applyZone(getZone(id).obs, d.zones[id]);
+  setZone(ZONES[d.zone] ? d.zone : "home");
+  Object.assign(P, d.p); P.alive = true;
+  if (!d.p.alive || P.hp <= 0 || ZONES[curZone].vault) { setZone("home"); P.x = CAMP.x; P.y = CAMP.y + 60; if (P.hp <= 0) P.hp = P.max; }
+  garage = d.garage || {}; pity = d.pity || {}; vaultsDone = d.vaultsDone || {}; won = !!d.won;
+  bag = d.bag && d.bag.length >= BAG_SLOTS ? d.bag : emptySlots(BAG_SLOTS);
+  fitBag();
+  P.weapon = d.weapon || null; P.armor = d.armor || null; grave = d.grave || null; drops = d.drops || [];
+  if (d.horde) { horde.warned = d.horde.warned || 0; horde.done = d.horde.done || 0; horde.away = d.horde.away || 0; }
+  builds = [];
+  for (const b of d.builds || []) addBuild(b.t, b.gx, b.gy, b.hp, b.items);
+  return true;
+}
+function resetWorld() {
+  zombies = []; rabbits = []; parts = []; nums = []; builds = []; grave = null; drops = [];
+  horde = { warned: 0, done: 0, active: false, left: 0, spawnT: 0, away: 0 };
+  garage = {}; pity = {}; runPart = false; vaultsDone = {}; won = false;
+  for (const k in zoneCache) delete zoneCache[k];
+  setZone("home");
+}
+function refreshTitle() {
+  const d = readSave();
+  if (d) { ui.tcont.classList.remove("hide"); ui.tcont.textContent = "CONTINUE · DAY " + (Math.floor(d.wt / DAY) + 1); ui.tsave.textContent = "Your game saves automatically on this phone."; }
+  else { ui.tcont.classList.add("hide"); ui.tsave.textContent = ""; }
+  ui.tnew.textContent = "NEW GAME"; ui.tnew.dataset.confirm = "";
+}
+function newGameClick() {
+  if (readSave() && ui.tnew.dataset.confirm !== "1") { ui.tnew.dataset.confirm = "1"; ui.tnew.textContent = "TAP AGAIN TO ERASE SAVE"; return; }
+  newGame();
+}
+function newGame() {
+  resetWorld();
+  wt = DAY * 0.25; kills = 0;
+  bag = emptySlots(BAG_SLOTS); P.weapon = null; P.armor = null;
+  P.x = CAMP.x; P.y = CAMP.y + 60; P.hp = P.max; P.st = 100; P.hu = 100; P.th = 100; P.face = -Math.PI / 2;
+  startPlay();
+  toast("Search the crates in camp");
+  save();
+}
+function startPlay() {
+  P.alive = true; P.inv = 1.5; P.swing = 0; P.swingCd = 0; P.dodge = 0; P.tired = false;
+  if (horde.active) { horde.active = false; horde.done = horde.day; }
+  loose = []; tracers = []; rings = [];
+  zombies = []; rabbits = []; grace = 5; spawnTimer = 0; hurtFlash = 0;
+  while (rabbits.length < ZONES[curZone].rabbits) spawnRabbit(true);
+  enterZone();
+  clearInput();
+  state = "play";
+  ui.title.classList.add("hide"); ui.dead.classList.add("hide");
+  ui.hud.classList.remove("hide"); ui.btns.classList.remove("hide");
+}
+function respawn() {
+  setZone("home");
+  P.x = CAMP.x; P.y = CAMP.y + 60; P.hp = P.max; P.st = 100; P.hu = Math.max(P.hu, 60); P.th = Math.max(P.th, 60);
+  startPlay(); save();
+}
+function bagCap() { let n = BAG_SLOTS; for (const v of VEH_ORDER) if (garage[v]) n += VEH[v].slots; return n; }
+function fitBag() { const cap = bagCap(); while (bag.length < cap) bag.push(null); }
+function tripPlan(to) {
+  // pick the best vehicle you own for this trip; motor vehicles burn 1 fuel
+  const base = zoneHours(curZone, to), tier = ZONES[baseZone(to)].tier, hasFuel = countIn(bag, "fuel") > 0;
+  let best = null;
+  for (const v of VEH_ORDER) {
+    const V = VEH[v];
+    if (!garage[v] || tier > V.maxTier || (V.fuel && !hasFuel)) continue;
+    if (!best || V.mult < VEH[best].mult) best = v;
+  }
+  const hrs = best ? Math.max(0.5, Math.round(base * VEH[best].mult * 2) / 2) : base;
+  const noFuel = !best && VEH_ORDER.some((v) => garage[v] && VEH[v].fuel) && !hasFuel;
+  return { hrs, veh: best, noFuel };
+}
+function travel(to) {
+  const target = ZONES[to] && ZONES[to].entry ? (vaultsDone[to] ? to.replace("vault", "v") + "f2" : ZONES[to].entry) : to;
+  if (baseZone(target) === baseZone(curZone)) return;
+  const plan = tripPlan(to), h = plan.hrs;
+  closePanel(true);
+  if (horde.active && curZone === "home") hordeHitsEmptyCamp(horde.day);
+  // bad-luck rule: an empty run in a part zone makes the next part more likely
+  const bz = baseZone(curZone);
+  if (PART_SRC[bz] && !runPart && neededParts(bz).length) pity[bz] = (pity[bz] || 0) + 1;
+  runPart = false;
+  if (plan.veh && VEH[plan.veh].fuel) removeFrom(bag, "fuel", 1);
+  wt += (h * DAY) / 24;
+  P.hu = Math.max(0, P.hu - h * (100 / 36));
+  P.th = Math.max(0, P.th - h * (100 / 24));
+  setZone(target);
+  const z = getZone(target);
+  P.x = z.exit.x; P.y = z.exit.y - 60; P.face = -Math.PI / 2;
+  startPlay();
+  toast("Traveled " + h + "h to " + ZONES[baseZone(target)].n + (plan.veh ? " by " + VEH[plan.veh].n.toLowerCase() : " on foot"));
+  if (vaultsDone[to] && ZONES[to].entry) toast("Shortcut: skipped floor 1");
+  if (to === "home" && horde.away) { toast(garage.truck ? "Your truck kept the horde off your camp" : "The horde hit your camp while you were gone"); horde.away = 0; }
+  if (P.hu <= 0 || P.th <= 0) toast("You arrived starving and parched");
+  sfx("travel");
+  save();
+}
+function descend() {
+  const Z = ZONES[curZone];
+  if (!Z.vault || Z.floor >= 3) return;
+  if (countIn(bag, "keycard") <= 0) { toast("Locked. A guard on this floor carries the keycard."); sfx("deny"); return; }
+  removeFrom(bag, "keycard", 1);
+  const next = "v" + Z.vault + "f" + (Z.floor + 1);
+  setZone(next);
+  const z = getZone(next);
+  P.x = z.exit.x; P.y = z.exit.y - 60; P.face = -Math.PI / 2;
+  startPlay();
+  toast(ZONES[next].n + (Z.floor + 1 === 3 ? " · something huge is breathing" : ""));
+  sfx("travel"); save();
+}
+function enterZone() {
+  const Z = ZONES[curZone];
+  if (!Z.vault) return;
+  grace = 999; // vault floors have a fixed garrison, no endless spawns
+  const W = WORLD;
+  if (Z.floor === 3) {
+    const b = makeZombie(BOSS[Z.vault].id, W / 2, 200); b.chase = true; b.boss = Z.vault; b.timer = 3; b.st = "walk";
+    zombies.push(b);
+    for (let i = 0; i < 4 + Z.vault * 2; i++) { const z = spawnZombie(pickType(Z.mix), { x: W / 2 + (R() - 0.5) * 600, y: 260 + R() * 200 }); if (z) z.alert = 0; }
+    return;
+  }
+  const n = 12 + Z.vault * 3 + Z.floor * 2;
+  let guard = null;
+  for (let i = 0; i < n; i++) {
+    const z = spawnZombie(pickType(Z.mix), { x: 150 + R() * (W - 300), y: 150 + R() * (W - 520) });
+    if (z && (!guard || R() < 0.15)) { if (guard) guard.key = false; guard = z; z.key = true; }
+  }
+  if (guard) { guard.hp *= 1.4; guard.max = guard.hp; }
+}
+
+// =============== builds ===============
+function addBuild(t, gx, gy, hp, items) {
+  const pc = PIECES[t];
+  const b = { t, gx, gy, x: gx * CELL + CELL / 2, y: gy * CELL + CELL / 2, hp: hp == null ? pc.hp : hp, cd: 0 };
+  if (pc.chest) b.items = items && items.length === CHEST_SLOTS ? items : emptySlots(CHEST_SLOTS);
+  builds.push(b); return b;
+}
+function buildAtCell(gx, gy) { return builds.find((b) => b.gx === gx && b.gy === gy) || null; }
+function removeBuild(b) { const i = builds.indexOf(b); if (i >= 0) builds.splice(i, 1); }
+function nearStation(kind) {
+  if (kind === "fire" && curZone === "home" && dist(P.x, P.y, CAMP.x, CAMP.y) < 90) return true;
+  for (const b of hb()) if (PIECES[b.t].station === kind && dist(P.x, P.y, b.x, b.y) < 90) return true;
+  return false;
+}
+function ghostCell() {
+  const tx = P.x + Math.cos(P.face) * 52, ty = P.y + Math.sin(P.face) * 52;
+  return { gx: Math.floor(tx / CELL), gy: Math.floor(ty / CELL) };
+}
+function canPlace(t, gx, gy) {
+  const x = gx * CELL + CELL / 2, y = gy * CELL + CELL / 2;
+  if (curZone !== "home") return "You can only build at your camp";
+  if (dist(x, y, CAMP.x, CAMP.y) > CAMP.r - 10) return "Only inside your camp";
+  if (buildAtCell(gx, gy)) return "Something is already there";
+  for (const o of obs) if (!o.nc && dist(x, y, o.x, o.y) < o.r + 18) return "Blocked";
+  if (!PIECES[t].trap && dist(x, y, P.x, P.y) < P.r + 22) return "Step back";
+  for (const z of zombies) if (!z.dead && dist(x, y, z.x, z.y) < 30) return "Zombie in the way";
+  return "";
+}
+function startBuild(t) { if (curZone !== "home") { toast("You can only build at your camp"); return; } buildMode = { t }; closePanel(true); ui.buildbar.classList.remove("hide"); updateBuildBar(); }
+function endBuild() { buildMode = null; ui.buildbar.classList.add("hide"); save(); }
+function updateBuildBar() {
+  if (!buildMode) return;
+  if (buildMode.t === "remove") { ui.bhint.textContent = "Face a piece to pick it up"; ui.bplace.textContent = "PICK UP"; return; }
+  const pc = PIECES[buildMode.t];
+  ui.bhint.textContent = pc.n + " · " + needText(pc.need);
+  ui.bplace.textContent = "PLACE";
+}
+function needText(need) { return Object.keys(need).map((k) => need[k] + " " + ITEMS[k].n.toLowerCase()).join(", "); }
+function placePiece() {
+  if (!buildMode) return;
+  const { gx, gy } = ghostCell();
+  if (buildMode.t === "remove") {
+    const b = buildAtCell(gx, gy);
+    if (!b) { toast("Nothing to pick up there"); return; }
+    if (b.items && b.items.some((s) => s)) { toast("Empty the chest first"); return; }
+    const pc = PIECES[b.t], full = b.hp >= pc.hp;
+    for (const k in pc.need) addTo(bag, k, full ? pc.need[k] : Math.floor(pc.need[k] / 2));
+    removeBuild(b); toast(full ? "Picked up · full refund" : "Picked up · damaged, half refund");
+    return;
+  }
+  const pc = PIECES[buildMode.t];
+  const why = canPlace(buildMode.t, gx, gy);
+  if (why) { toast(why); return; }
+  if (!hasAll(pc.need)) { toast("Need " + needText(pc.need)); return; }
+  payAll(pc.need);
+  addBuild(buildMode.t, gx, gy);
+  shake = 3;
+  for (let i = 0; i < 8; i++) parts.push({ x: gx * CELL + 20, y: gy * CELL + 20, vx: (R() - 0.5) * 120, vy: (R() - 0.5) * 120, t: 0.4, c: "#6d6450", s: 3 });
+  updateBuildBar();
+}
+
+// =============== panels ===============
+function openPanel(kind, target) {
+  if (state !== "play") return;
+  if (buildMode) endBuild();
+  clearInput();
+  panel = { kind, sel: null, target: target || null };
+  state = "menu";
+  ui.panel.classList.remove("hide");
+  renderPanel();
+}
+function closePanel(silent) {
+  if (!panel) return;
+  panel = null; ui.panel.classList.add("hide");
+  if (state === "menu") state = "play";
+  if (silent !== true) save();
+}
+function slotHtml(s, act, i, sel) {
+  if (!s) return `<button class="slot" data-act="${act}" data-i="${i}"></button>`;
+  const d = ITEMS[s.id];
+  let dur = "";
+  const mx = d.tool ? d.tool.dur : d.armor ? d.armor.dur : 0;
+  if (mx) dur = `<i><u style="width:${Math.round((s.dur / mx) * 100)}%"></u></i>`;
+  return `<button class="slot${sel ? " sel" : ""}" data-act="${act}" data-i="${i}">${d.i}${s.n > 1 ? `<b>${s.n}</b>` : ""}${dur}</button>`;
+}
+function itemStats(d) {
+  if (d.tool) return "Damage " + d.tool.dmg + " · Reach " + d.tool.rng + (d.tool.chop >= 1 ? " · Chops " + d.tool.chop + "x" : "") + (d.tool.mine >= 1 ? " · Mines " + d.tool.mine + "x" : "");
+  if (d.armor) return "Blocks " + Math.round(d.armor.red * 100) + "% damage";
+  if (d.use) { const u = d.use, a = []; if (u.hu) a.push("Food " + (u.hu > 0 ? "+" : "") + u.hu); if (u.th) a.push("Water " + (u.th > 0 ? "+" : "") + u.th); if (u.hp) a.push("Health " + (u.hp > 0 ? "+" : "") + u.hp); return a.join(" · "); }
+  return "";
+}
+function renderPanel() {
+  if (!panel) return;
+  const k = panel.kind;
+  let h = "";
+  if (k === "bag") {
+    ui.ptitle.textContent = "BACKPACK";
+    h += `<div class="bagwrap"><div class="equip"><label>HAND</label>${P.weapon ? slotHtml(P.weapon, "eq", "weapon", panel.sel === "weapon") : `<button class="slot" style="font-size:18px;opacity:.5">✊</button>`}<label>BODY</label>${P.armor ? slotHtml(P.armor, "eq", "armor", panel.sel === "armor") : `<button class="slot" style="opacity:.3"></button>`}</div><div class="grid">`;
+    bag.forEach((s, i) => { h += slotHtml(s, "sel", i, panel.sel === i); });
+    h += `</div></div><div class="detail">`;
+    const s = panel.sel === "weapon" ? P.weapon : panel.sel === "armor" ? P.armor : panel.sel != null ? bag[panel.sel] : null;
+    if (s) {
+      const d = ITEMS[s.id];
+      h += `<div style="font-size:30px">${d.i}</div><div class="txt"><b>${d.n}${s.n > 1 ? " ×" + s.n : ""}</b><div>${d.d}</div><div>${itemStats(d)}</div></div>`;
+      if (typeof panel.sel === "string") h += `<button class="pbtn" data-act="unequip">UNEQUIP</button>`;
+      else {
+        if (d.use) h += `<button class="pbtn go2" data-act="use">${d.verb}</button>`;
+        if (d.tool || d.armor) h += `<button class="pbtn go2" data-act="equip">EQUIP</button>`;
+        h += `<button class="pbtn" data-act="drop">DROP</button>`;
+      }
+    } else h += `<div class="txt hint">Tap an item. Food and water fill your bars. Equip a weapon or tool to use it.</div>`;
+    h += `</div>`;
+  } else if (k === "craft") {
+    ui.ptitle.textContent = "CRAFTING";
+    for (const r of RECIPES) {
+      const d = ITEMS[r.id];
+      const stOk = !r.st || nearStation(r.st);
+      const ok = stOk && hasAll(r.need);
+      let chips = "";
+      for (const m in r.need) { const have = countIn(bag, m); chips += `<span class="chip ${have >= r.need[m] ? "ok" : "no"}">${ITEMS[m].i} ${have}/${r.need[m]}</span>`; }
+      if (r.st) chips += `<span class="chip ${stOk ? "st" : "no"}">at ${STATION_NAME[r.st]}</span>`;
+      h += `<div class="row"><div class="ic">${d.i}</div><div class="nm">${d.n}${r.q ? " ×" + r.q : ""}<div>${chips}</div></div><button class="pbtn go2" data-act="craft" data-id="${r.id}" ${ok ? "" : "disabled"}>CRAFT</button></div>`;
+    }
+  } else if (k === "build") {
+    ui.ptitle.textContent = "BUILD YOUR CAMP";
+    h += `<div class="hint">Pick a piece, then face where it goes and tap PLACE. Building only works inside camp.</div>`;
+    for (const t in PIECES) {
+      const pc = PIECES[t];
+      let chips = "";
+      for (const m in pc.need) { const have = countIn(bag, m); chips += `<span class="chip ${have >= pc.need[m] ? "ok" : "no"}">${ITEMS[m].i} ${have}/${pc.need[m]}</span>`; }
+      h += `<div class="row"><div class="ic">${pc.i}</div><div class="nm">${pc.n}<div>${chips}</div><div class="hint" style="font-weight:400">${pc.d}</div></div><button class="pbtn go2" data-act="build" data-id="${t}">SELECT</button></div>`;
+    }
+    h += `<div class="row"><div class="ic">↩️</div><div class="nm">Pick up pieces<div class="hint">Full refund if undamaged.</div></div><button class="pbtn" data-act="build" data-id="remove">SELECT</button></div>`;
+  } else if (k === "chest") {
+    ui.ptitle.textContent = "STORAGE CHEST";
+    const c = panel.target.items;
+    h += `<div class="sec">BACKPACK · tap to store</div><div class="grid">`;
+    bag.forEach((s, i) => { h += slotHtml(s, "tochest", i, false); });
+    h += `</div><div class="sec">CHEST · tap to take</div><div class="grid">`;
+    c.forEach((s, i) => { h += slotHtml(s, "tobag", i, false); });
+    h += `</div>`;
+  } else if (k === "garage") {
+    ui.ptitle.textContent = "GARAGE";
+    h += `<div class="hint">Every part is earned. Common parts drop in dangerous zones, engines are guaranteed from vault bosses. After 5 empty runs in a zone, its next part is guaranteed.</div>`;
+    for (const v of VEH_ORDER) {
+      const V = VEH[v];
+      let chips = "", ok = true;
+      for (const m in V.need) { const have = countIn(bag, m); if (have < V.need[m]) ok = false; chips += `<span class="chip ${have >= V.need[m] ? "ok" : "no"}">${ITEMS[m].i} ${ITEMS[m].n} ${Math.min(have, V.need[m])}/${V.need[m]}</span>`; }
+      const btn = garage[v] ? `<span class="chip ok">BUILT ✓</span>` : `<button class="pbtn go2" data-act="vbuild" data-id="${v}" ${ok ? "" : "disabled"}>BUILD</button>`;
+      h += `<div class="row"><div class="ic">${V.i}</div><div class="nm">${V.n}<div>${garage[v] ? "" : chips}</div><div class="hint" style="font-weight:400">${V.d}</div></div>${btn}</div>`;
+    }
+  } else if (k === "map") {
+    ui.ptitle.textContent = "WORLD MAP";
+    h += `<div class="hint">Travel takes in-game hours and costs food and water. Vehicles cut the time. Higher danger means better loot.</div>`;
+    for (const id of ZONE_ORDER) {
+      const Z = ZONES[id], here = id === baseZone(curZone), plan = here ? { hrs: 0 } : tripPlan(id), hrs = plan.hrs;
+      const danger = "●".repeat(Z.tier) + "○".repeat(5 - Z.tier);
+      const cost = here ? `<span class="chip st">You are here</span>` : `<span class="chip">⏱ ${hrs}h</span><span class="chip">🍖 −${Math.round(hrs * 100 / 36)}</span><span class="chip">💧 −${Math.round(hrs * 100 / 24)}</span>${plan.veh ? `<span class="chip ok">${VEH[plan.veh].i} ${VEH[plan.veh].n}</span>` : plan.noFuel ? `<span class="chip no">No fuel · walking</span>` : ""}${Z.entry && vaultsDone[id] ? `<span class="chip ok">Cleared · shortcut</span>` : ""}`;
+      h += `<div class="row"><div class="ic">${id === "home" ? "⛺" : Z.entry ? "🔒" : Z.tier >= 3 ? "☠️" : Z.tier >= 2 ? "⚠️" : "🌲"}</div><div class="nm">${Z.n} <span class="chip ${Z.tier >= 2 ? "no" : "ok"}">${danger}</span><div>${cost}</div><div class="hint" style="font-weight:400">${Z.d}</div></div><button class="pbtn go2" data-act="travel" data-id="${id}" ${here ? "disabled" : ""}>TRAVEL</button></div>`;
+    }
+    if (isHordeDay() && horde.done < dayNum()) h += `<div class="hint" style="color:var(--no);margin-top:8px">⚠ Horde night tonight. Be at camp by 21:00 or your walls take the hit.</div>`;
+  }
+  ui.pbody.innerHTML = h;
+}
+ui.pbody.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]"); if (!b || !panel) return;
+  const act = b.dataset.act, i = b.dataset.i;
+  if (act === "sel") { panel.sel = bag[+i] ? +i : null; }
+  else if (act === "eq") { panel.sel = i; }
+  else if (act === "use") useItem(panel.sel);
+  else if (act === "equip") equipItem(panel.sel);
+  else if (act === "unequip") {
+    const key = panel.sel, s = P[key];
+    if (s && putSlot(bag, s)) { P[key] = null; panel.sel = null; } else toast("Backpack full");
+  }
+  else if (act === "drop") { const s = bag[panel.sel]; if (s) { bag[panel.sel] = null; toast("Dropped " + ITEMS[s.id].n); panel.sel = null; } }
+  else if (act === "craft") craft(b.dataset.id);
+  else if (act === "build") { startBuild(b.dataset.id); return; }
+  else if (act === "travel") { travel(b.dataset.id); return; }
+  else if (act === "vbuild") {
+    const V = VEH[b.dataset.id];
+    if (V && !garage[b.dataset.id] && hasAll(V.need)) {
+      payAll(V.need); garage[b.dataset.id] = true; fitBag(); sfx("craft"); shake = 6;
+      toast(V.n + " built!" + (V.slots ? " Backpack +" + V.slots + " slots" : ""));
+      save();
+      if (b.dataset.id === "truck" && !won) { won = true; save(); closePanel(true); showWin(); return; }
+    }
+  }
+  else if (act === "tochest") { const s = bag[+i]; if (s) { if (putSlot(panel.target.items, s)) bag[+i] = null; else toast("Chest full"); } }
+  else if (act === "tobag") { const c = panel.target.items, s = c[+i]; if (s) { if (putSlot(bag, s)) c[+i] = null; else toast("Backpack full"); } }
+  renderPanel();
+});
+function useItem(i) {
+  const s = bag[i]; if (!s) return;
+  const u = ITEMS[s.id].use; if (!u) return;
+  if (u.hu) P.hu = clamp(P.hu + u.hu, 0, 100);
+  if (u.th) P.th = clamp(P.th + u.th, 0, 100);
+  if (u.hp) { P.hp = clamp(P.hp + u.hp, 0, P.max); if (u.hp < 0) hurtFlash = 0.6; }
+  s.n--; if (s.n <= 0) { bag[i] = null; panel.sel = null; }
+  if (P.hp <= 0) { closePanel(true); die(); }
+}
+function equipItem(i) {
+  const s = bag[i]; if (!s) return;
+  const d = ITEMS[s.id], key = d.tool ? "weapon" : d.armor ? "armor" : null; if (!key) return;
+  bag[i] = P[key]; P[key] = s; panel.sel = null;
+  toast("Equipped " + d.n);
+}
+function craft(id) {
+  const r = RECIPES.find((x) => x.id === id); if (!r) return;
+  if (r.st && !nearStation(r.st)) { toast("Go to a " + STATION_NAME[r.st]); return; }
+  if (!hasAll(r.need)) return;
+  const test = bag.map((s) => (s ? { ...s } : null));
+  for (const k in r.need) removeFrom(test, k, r.need[k]);
+  const q = r.q || 1;
+  if (addTo(test, id, q)) { toast("Backpack full"); return; }
+  payAll(r.need); addTo(bag, id, q);
+  toast("Crafted " + (q > 1 ? q + " " : "") + ITEMS[id].n); sfx("craft");
+}
+
+// =============== vehicle parts ===============
+function partNeed(id) { let n = 0; for (const v of VEH_ORDER) if (!garage[v] && VEH[v].need[id]) n += VEH[v].need[id]; return n; }
+function partHave(id) { let n = countIn(bag, id); for (const b of builds) if (b.items) n += countIn(b.items, id); if (grave) n += grave.items.filter((s) => s.id === id).reduce((a, s) => a + s.n, 0); return n; }
+function neededParts(bz) { return (PART_SRC[bz] || []).filter((p) => partHave(p) < partNeed(p)); }
+function rollPart() {
+  const bz = baseZone(curZone), need = neededParts(bz);
+  if (!need.length) return null;
+  const sure = (pity[bz] || 0) >= 5;
+  if (!sure && R() > 0.15) return null;
+  pity[bz] = 0; runPart = true;
+  toast(sure ? "Bad luck streak broken · vehicle part found!" : "Vehicle part found!");
+  return need[Math.floor(R() * need.length)];
+}
+
+// =============== interaction ===============
+function findUse() {
+  let best = null, bd = 44;
+  const near = (x, y, r) => dist(P.x, P.y, x, y) - r - P.r;
+  if (grave && grave.zone === curZone) { const d = near(grave.x, grave.y, 10); if (d < bd + 10) { bd = d; best = { kind: "grave", obj: grave, label: "PICK UP" }; } }
+  if (curZone === "home") for (const c of drops) { const d = near(c.x, c.y, 18); if (d < bd) { bd = d; best = { kind: "drop", obj: c, label: "LOOT" }; } }
+  for (const b of hb()) {
+    const pc = PIECES[b.t];
+    if (!pc.chest && !pc.station) continue;
+    const d = near(b.x, b.y, pc.r || 18);
+    if (d < bd) { bd = d; best = { kind: pc.chest ? "chest" : pc.station === "garage" ? "garage" : "station", obj: b, label: pc.chest ? "OPEN" : pc.station === "fire" ? "COOK" : pc.station === "garage" ? "GARAGE" : "CRAFT" }; }
+  }
+  for (const o of obs) {
+    if (Math.abs(o.x - P.x) > 160 || Math.abs(o.y - P.y) > 160) continue;
+    let label = null, kind = o.type;
+    if (o.type === "crate" && o.loot && o.loot.length) label = "LOOT";
+    else if ((o.type === "wreck" || o.type === "cache") && wt >= o.lootAt) label = "SEARCH";
+    else if (o.type === "bush" && !o.depl) label = "PICK";
+    else if (o.type === "pond") label = "WATER";
+    else if (o.type === "exit") label = o.elevator ? "EXIT" : "TRAVEL";
+    else if (o.type === "stairs") label = "DESCEND";
+    else if (o.type === "fire") { label = "COOK"; kind = "station"; }
+    if (!label) continue;
+    const d = near(o.x, o.y, o.r);
+    if (d < bd) { bd = d; best = { kind, obj: o, label }; }
+  }
+  return best;
+}
+function takeLoot(list) {
+  const left = [];
+  for (const [id, n] of list) {
+    if (ITEMS[id].st === 1) { for (let i = 0; i < n; i++) { const s = newSlot(id, 1); if (ITEMS[id].tool) s.dur = Math.round(s.dur * (0.4 + R() * 0.4)); if (putSlot(bag, s)) toast("+1 " + ITEMS[id].n); else { left.push([id, 1]); toast("Backpack full"); } } continue; }
+    const l = gain(id, n); if (l > 0) left.push([id, l]);
+  }
+  return left;
+}
+function doUse(u) {
+  if (!u) return;
+  const o = u.obj;
+  if (u.kind === "grave") {
+    const left = [];
+    for (const s of o.items) if (!putSlot(bag, s)) left.push(s);
+    if (left.length) { o.items = left; toast("Backpack full · some gear left"); }
+    else { grave = null; toast(o.spill ? "Got your stuff back" : "Got your gear back"); }
+    save();
+  } else if (u.kind === "drop") {
+    o.loot = takeLoot(o.loot || []);
+    if (o.slots) o.slots = o.slots.filter((s) => !putSlot(bag, s));
+    if (!o.loot.length && !(o.slots && o.slots.length)) drops.splice(drops.indexOf(o), 1);
+    save();
+  } else if (u.kind === "chest") openPanel("chest", o);
+  else if (u.kind === "station") openPanel("craft");
+  else if (u.kind === "exit") openPanel("map");
+  else if (u.kind === "stairs") descend();
+  else if (u.kind === "garage") openPanel("garage");
+  else if (u.kind === "crate") { o.loot = takeLoot(o.loot); save(); }
+  else if (u.kind === "wreck" || u.kind === "cache") {
+    if (!o.loot || !o.loot.length) {
+      o.loot = LOOT[u.kind === "wreck" ? "wreck" : o.kind]();
+      if (o.vaultFixed && VAULT_FIXED[o.vaultFixed]) for (const [pid, pn] of VAULT_FIXED[o.vaultFixed]) { const k = Math.min(pn, partNeed(pid) - partHave(pid)); if (k > 0) { o.loot.push([pid, k]); runPart = true; toast("Vehicle part found!"); } }
+      const part = u.kind === "cache" ? rollPart() : null;
+      if (part) o.loot.push([part, 1]);
+    }
+    sfx("loot");
+    o.loot = takeLoot(o.loot);
+    if (!o.loot.length) { o.lootAt = wt + DAY * 3; o.loot = null; toast("Picked clean · check back in 3 days"); }
+    save();
+  } else if (u.kind === "bush") {
+    gain("berries", ri(2, 3)); gain("fiber", ri(1, 2));
+    if (curZone === "farm" && R() < 0.4) gain("seeds", 1);
+    o.depl = wt + DAY;
+    for (let i = 0; i < 6; i++) parts.push({ x: o.x, y: o.y, vx: (R() - 0.5) * 90, vy: (R() - 0.5) * 90, t: 0.4, c: "#4f6b38", s: 3 });
+  } else if (u.kind === "pond") gain("dirtywater", 2);
+}
+
+// =============== physics ===============
+function boxPush(e, bx, by, hw, hh) {
+  const cx = clamp(e.x, bx - hw, bx + hw), cy = clamp(e.y, by - hh, by + hh);
+  const dx = e.x - cx, dy = e.y - cy, d = Math.hypot(dx, dy);
+  if (d >= e.r) return false;
+  if (d > 0.001) { const k = (e.r - d) / d; e.x += dx * k; e.y += dy * k; }
+  else {
+    const ox = hw + e.r - Math.abs(e.x - bx), oy = hh + e.r - Math.abs(e.y - by);
+    if (ox < oy) e.x += Math.sign(e.x - bx || 1) * ox; else e.y += Math.sign(e.y - by || 1) * oy;
+  }
+  return true;
+}
+function pushOut(e, who) {
+  let hit = null;
+  for (const o of obs) {
+    if (o.nc) continue;
+    if (o.box) { if (Math.abs(e.x - o.x) < o.w / 2 + e.r && Math.abs(e.y - o.y) < o.h / 2 + e.r) boxPush(e, o.x, o.y, o.w / 2, o.h / 2); continue; }
+    let r = o.r;
+    if (o.type === "exit") continue;
+    if (o.depl) { if (o.type === "tree") r = o.r * 0.45; else continue; }
+    const dx = e.x - o.x, dy = e.y - o.y, min = r + e.r;
+    if (Math.abs(dx) > min || Math.abs(dy) > min) continue;
+    const d = Math.hypot(dx, dy);
+    if (d < min && d > 0.001) { const k = (min - d) / d; e.x += dx * k; e.y += dy * k; }
+  }
+  for (const b of hb()) {
+    const pc = PIECES[b.t];
+    if (pc.trap || (pc.door && who === "p")) continue;
+    if (Math.abs(e.x - b.x) > 40 || Math.abs(e.y - b.y) > 40) continue;
+    if (pc.box) { if (boxPush(e, b.x, b.y, CELL / 2, CELL / 2)) hit = b; }
+    else {
+      const dx = e.x - b.x, dy = e.y - b.y, min = pc.r + e.r, d = Math.hypot(dx, dy);
+      if (d < min && d > 0.001) { const k = (min - d) / d; e.x += dx * k; e.y += dy * k; hit = b; }
+    }
+  }
+  e.x = clamp(e.x, 40, WORLD - 40); e.y = clamp(e.y, 40, WORLD - 40);
+  return hit;
+}
+function blockedAt(x, y, r) {
+  for (const o of obs) {
+    if (o.nc || o.type === "exit") continue;
+    if (o.box) { if (Math.abs(x - o.x) < o.w / 2 + r && Math.abs(y - o.y) < o.h / 2 + r) return true; continue; }
+    if (dist(x, y, o.x, o.y) < o.r + r) return true;
+  }
+  return false;
+}
+
+// =============== creatures ===============
+function makeZombie(type, x, y) {
+  const T = ZTYPES[type];
+  return { type, x, y, r: T.r, hp: T.hp, max: T.hp, speed: T.sp[0] + R() * (T.sp[1] - T.sp[0]), chase: false,
+    wa: Math.atan2(P.y - y, P.x - x) + (R() - 0.5), wt: 1 + R() * 2, cd: 0, flash: 0, kx: 0, ky: 0, face: 0, dead: 0, lunge: 0, step: R() * 10,
+    tone: R(), trapCd: 0, hordeM: false };
+}
+function spawnZombie(type, near) {
+  const Z = ZONES[curZone];
+  for (let tries = 0; tries < 20; tries++) {
+    let x, y;
+    if (near) { x = near.x + (R() - 0.5) * 80; y = near.y + (R() - 0.5) * 80; }
+    else { const a = R() * Math.PI * 2, d = 520 + R() * 380; x = P.x + Math.cos(a) * d; y = P.y + Math.sin(a) * d; }
+    if (x < 60 || y < 60 || x > WORLD - 60 || y > WORLD - 60) continue;
+    if (curZone === "home" && dist(x, y, CAMP.x, CAMP.y) < CAMP.r + 40) continue;
+    if (blockedAt(x, y, 20)) continue;
+    const z = makeZombie(type || pickType(Z.mix), x, y);
+    zombies.push(z);
+    return z;
+  }
+  return null;
+}
+function spawnRabbit(anywhere) {
+  for (let t = 0; t < 20; t++) {
+    let x, y;
+    if (anywhere) { x = 100 + R() * (WORLD - 200); y = 100 + R() * (WORLD - 200); }
+    else { const a = R() * Math.PI * 2, d = 600 + R() * 400; x = P.x + Math.cos(a) * d; y = P.y + Math.sin(a) * d; }
+    if (x < 60 || y < 60 || x > WORLD - 60 || y > WORLD - 60) continue;
+    if (curZone === "home" && dist(x, y, CAMP.x, CAMP.y) < CAMP.r + 80) continue;
+    if (blockedAt(x, y, 10)) continue;
+    rabbits.push({ x, y, r: 8, hp: 20, wa: R() * 6.28, wt: 0, flee: 0, hop: R() * 6, face: 0 });
+    return;
+  }
+}
+function hurtPlayer(dmg) {
+  if (!P.alive || P.inv > 0 || P.dodge > 0) return;
+  if (P.armor) { dmg *= 1 - ITEMS[P.armor.id].armor.red; P.armor.dur--; if (P.armor.dur <= 0) { toast(ITEMS[P.armor.id].n + " fell apart"); P.armor = null; } }
+  P.hp -= dmg; P.inv = 0.45; shake = 9; hurtFlash = 1; sfx("hurt");
+  if (P.hp <= 0) die();
+}
+function explode(z) {
+  // bloaters burst in a toxic cloud: hurts everything close, including other zombies and walls
+  for (let i = 0; i < 26; i++) parts.push({ x: z.x, y: z.y, vx: (R() - 0.5) * 260, vy: (R() - 0.5) * 260, t: 0.7 + R() * 0.5, c: R() < 0.5 ? "#7a8a3a" : "#5a6a2a", s: 5 + R() * 6 });
+  shake = Math.max(shake, 10);
+  const RAD = 80;
+  if (dist(z.x, z.y, P.x, P.y) < RAD + P.r) { const keep = P.inv; P.inv = 0; hurtPlayer(26); if (P.alive && keep > P.inv) P.inv = keep; }
+  for (const o of zombies) if (o !== z && !o.dead && dist(z.x, z.y, o.x, o.y) < RAD + o.r) hurtZombie(o, 45, (o.x - z.x) / RAD, (o.y - z.y) / RAD, 1.2, "boom");
+  sfx("boom");
+  for (const b of hb().slice()) if (!PIECES[b.t].trap && dist(z.x, z.y, b.x, b.y) < RAD + 20) { b.hp -= 45; if (b.hp <= 0) destroyBuild(b); }
+}
+function hurtZombie(z, dmg, ax, ay, kb, src) {
+  if (z.dead) return;
+  if ((z.type === "armored" || z.type === "boss3") && src === "melee") dmg *= z.type === "boss3" ? 0.4 : 0.3; // melee barely dents armor
+  if (z.boss && z.stun > 0) dmg *= 2;
+  z.hp -= dmg; z.flash = 0.12; z.chase = true; z.alert = Math.max(z.alert || 0, 4);
+  const heavy = z.boss ? 0.05 : z.type === "brute" ? 0.2 : z.type === "bloater" ? 0.4 : z.type === "armored" ? 0.6 : 1;
+  z.kx += ax * 280 * (kb || 1) * heavy; z.ky += ay * 280 * (kb || 1) * heavy;
+  nums.push({ x: z.x, y: z.y - 22, v: Math.round(dmg), t: 0.8 });
+  for (let i = 0; i < 5; i++) parts.push({ x: z.x, y: z.y, vx: ax * 90 + (R() - 0.5) * 120, vy: ay * 90 + (R() - 0.5) * 120, t: 0.4 + R() * 0.3, c: "#3f4a35", s: 2 + R() * 3 });
+  if (z.hp <= 0) {
+    z.dead = 1.6; kills++;
+    if (z.hordeM) horde.left = Math.max(0, horde.left - 1);
+    if (z.key) { loose.push({ x: z.x, y: z.y, id: "keycard", n: 1 }); toast("The guard dropped a vault keycard!"); }
+    if (z.boss) bossDown(z);
+    sfx(z.boss ? "boom" : "kill");
+    for (let i = 0; i < 10; i++) parts.push({ x: z.x, y: z.y, vx: (R() - 0.5) * 160, vy: (R() - 0.5) * 160, t: 0.6 + R() * 0.4, c: "#6b604a", s: 3 + R() * 4 });
+    if (z.type === "bloater") explode(z);
+  }
+}
+function bossDown(z) {
+  const B = BOSS[z.boss];
+  vaultsDone["vault" + z.boss] = true;
+  shake = 16;
+  for (let i = 0; i < 40; i++) parts.push({ x: z.x, y: z.y, vx: (R() - 0.5) * 320, vy: (R() - 0.5) * 320, t: 0.8 + R() * 0.6, c: R() < 0.5 ? "#d9a441" : "#6b604a", s: 4 + R() * 6 });
+  const loot = [[B.drop, 1], ["medkit", 2], ["ammo9", 20], ["ammo762", 10], ["ironbar", 4], ["milvest", 1]];
+  if (partHave(B.drop) >= partNeed(B.drop) + 0 && garage[B.drop === "motoengine" ? "moto" : B.drop === "atvengine" ? "atv" : "truck"]) loot.shift();
+  const left = takeLoot(loot);
+  if (left.length) { drops.push({ x: CAMP.x - 50, y: CAMP.y + 60, loot: left }); toast("Backpack full · the rest was hauled to a crate at camp"); }
+  toast(B.n + " IS DOWN. Vault " + z.boss + " cleared!");
+  save();
+}
+function destroyBuild(b) {
+  if (b.items) { const spilled = b.items.filter(Boolean); if (spilled.length) { if (grave && grave.zone === "home") grave.items.push(...spilled); else if (!grave) grave = { x: b.x, y: b.y, items: spilled, spill: true, zone: "home" }; else drops.push({ x: b.x, y: b.y, loot: [] , slots: spilled }); } }
+  removeBuild(b); toast(PIECES[b.t].n + " destroyed!");
+}
+function wearTool(n) {
+  if (!P.weapon) return;
+  P.weapon.dur -= n || 1;
+  if (P.weapon.dur <= 0) { toast(ITEMS[P.weapon.id].n + " broke!"); P.weapon = null; shake = 6; }
+}
+
+function noise(r) {
+  for (const z of zombies) if (!z.dead && dist(z.x, z.y, P.x, P.y) < r) { z.chase = true; z.alert = 7; }
+}
+function shoot(tl) {
+  P.swingCd = tl.cd;
+  if (countIn(bag, tl.ammo) <= 0) { toast("Out of " + ITEMS[tl.ammo].n.toLowerCase()); sfx("deny"); P.swingCd = 0.5; return; }
+  removeFrom(bag, tl.ammo, 1);
+  let tgt = null, td = tl.rng;
+  for (const z of zombies) { if (z.dead) continue; const d = dist(P.x, P.y, z.x, z.y); if (d < td) { td = d; tgt = z; } }
+  if (tgt) P.face = Math.atan2(tgt.y - P.y, tgt.x - P.x);
+  const dx = Math.cos(P.face), dy = Math.sin(P.face);
+  // hitscan along the barrel; rifles punch through every zombie in the line
+  const hits = [];
+  for (const z of zombies) {
+    if (z.dead) continue;
+    const rx = z.x - P.x, ry = z.y - P.y, along = rx * dx + ry * dy;
+    if (along < 0 || along > tl.rng) continue;
+    if (Math.abs(rx * dy - ry * dx) < z.r + 6) hits.push([along, z]);
+  }
+  hits.sort((a, b) => a[0] - b[0]);
+  let end = tl.rng;
+  for (const [al, z] of tl.pierce ? hits : hits.slice(0, 1)) { hurtZombie(z, tl.dmg * (0.9 + R() * 0.2), dx, dy, 0.8, "gun"); end = al; }
+  tracers.push({ x1: P.x + dx * 18, y1: P.y + dy * 18, x2: P.x + dx * end, y2: P.y + dy * end, t: 0.08 });
+  P.swing = 0.08; shake = Math.max(shake, tl.pierce ? 6 : 3);
+  noise(tl.pierce ? 900 : 650);
+  wearTool(1); sfx(tl.pierce ? "rifle" : "shot");
+}
+function swingAt() {
+  const tl = curTool();
+  if (tl.gun) { shoot(tl); return; }
+  // aim: zombie, then rabbit, then resource
+  let tgt = null, td = 150;
+  for (const z of zombies) { if (z.dead) continue; const d = dist(P.x, P.y, z.x, z.y); if (d < td) { td = d; tgt = z; } }
+  if (!tgt) for (const r of rabbits) { const d = dist(P.x, P.y, r.x, r.y); if (d < Math.min(td, 110)) { td = d; tgt = r; } }
+  let res = null;
+  if (!tgt) {
+    let rd = tl.rng + 14;
+    for (const o of obs) {
+      if ((o.type !== "tree" && o.type !== "rock") || o.depl) continue;
+      if (Math.abs(o.x - P.x) > 120 || Math.abs(o.y - P.y) > 120) continue;
+      const d = dist(P.x, P.y, o.x, o.y) - o.r;
+      if (d < rd) { rd = d; res = o; }
+    }
+    if (res) tgt = res;
+  }
+  if (tgt) P.face = Math.atan2(tgt.y - P.y, tgt.x - P.x);
+  P.swing = SWING_TIME; P.swingCd = tl.cd;
+  P.st -= 6; P.stDelay = 0.5;
+  let hitAny = false;
+  for (const z of zombies) {
+    if (z.dead) continue;
+    const d = dist(P.x, P.y, z.x, z.y);
+    if (d > tl.rng + z.r) continue;
+    const a = Math.atan2(z.y - P.y, z.x - P.x);
+    if (Math.abs(angDiff(a, P.face)) > 0.95 && d > z.r + P.r) continue;
+    const back = Math.abs(angDiff(z.face, a)) < 1.0; // zombie facing away from you
+    hurtZombie(z, tl.dmg * (0.9 + R() * 0.25) * (back && (z.type === "brute" || z.boss) ? 2.5 : 1), Math.cos(a), Math.sin(a), tl.kb, "melee");
+    if (back && z.type === "brute") nums.push({ x: z.x, y: z.y - 40, v: "BACKSTAB", t: 0.8 });
+    hitAny = true;
+  }
+  for (const r of rabbits) {
+    if (r.hp <= 0) continue;
+    const d = dist(P.x, P.y, r.x, r.y);
+    if (d > tl.rng + r.r) continue;
+    const a = Math.atan2(r.y - P.y, r.x - P.x);
+    if (Math.abs(angDiff(a, P.face)) > 1.0) continue;
+    r.hp -= tl.dmg; hitAny = true;
+    if (r.hp <= 0) { gain("rawmeat", 1); if (R() < 0.6) gain("hide", 1); for (let i = 0; i < 6; i++) parts.push({ x: r.x, y: r.y, vx: (R() - 0.5) * 100, vy: (R() - 0.5) * 100, t: 0.4, c: "#8a7558", s: 2.5 }); }
+    else r.flee = 3;
+  }
+  sfx(hitAny ? "hit" : "swing");
+  if (hitAny) { shake = Math.max(shake, 4); wearTool(1); return; }
+  if (res && dist(P.x, P.y, res.x, res.y) - res.r < tl.rng + 8) gather(res, tl);
+}
+function gather(o, tl) {
+  const rate = o.type === "tree" ? tl.chop : tl.mine;
+  let amt = rate >= 1 ? Math.round(rate) : (R() < rate ? 1 : 0);
+  if (o.type === "tree") {
+    if (amt) gain("wood", amt); else toast("Fists barely dent it · craft an axe");
+    for (let i = 0; i < 5; i++) parts.push({ x: o.x + (R() - 0.5) * o.r, y: o.y - 6 + (R() - 0.5) * o.r, vx: (R() - 0.5) * 70, vy: 30 + R() * 50, t: 0.6, c: "#3f6a32", s: 2.5 });
+  } else {
+    if (amt) gain("stone", amt); else toast("Fists barely chip it · craft a pickaxe");
+    if (rate >= 2) { if (R() < (o.ore ? 0.55 : 0.28)) gain("ironore", 1); if (R() < (o.ore ? 0.4 : 0.18)) gain("coal", 1); }
+    for (let i = 0; i < 5; i++) parts.push({ x: o.x, y: o.y, vx: (R() - 0.5) * 120, vy: (R() - 0.5) * 120, t: 0.35, c: "#8a8a80", s: 2 });
+  }
+  shake = Math.max(shake, 2.5);
+  o.ch--;
+  if (o.ch <= 0) { o.depl = wt + (o.type === "tree" ? DAY * 1.5 : DAY * 2); toast(o.type === "tree" ? "Tree felled" : "Rock mined out"); }
+  wearTool(1);
+}
+
+// =============== update ===============
+function update(dt) {
+  time += dt;
+  if (shake > 0) shake = Math.max(0, shake - dt * 30);
+  if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt * 2.5);
+  for (const t of toasts) { t.t -= dt; if (t.t < 0.4) t.el.style.opacity = Math.max(0, t.t / 0.4); }
+  while (toasts.length && toasts[0].t <= 0) toasts.shift().el.remove();
+
+  if (state !== "play" && state !== "dying") return; // menus pause the world
+
+  if (state === "play") wt += dt;
+
+  if (P.alive && state === "play") {
+    let mx = input.jx, my = input.jy;
+    const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    const ky = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+    if (kx || ky) { const l = Math.hypot(kx, ky); mx = kx / l; my = ky / l; }
+    let mag = Math.min(1, Math.hypot(mx, my));
+    if (mag < 0.15) mag = 0; else { const l = Math.hypot(mx, my); mx /= l; my /= l; }
+    const wantRun = input.run || keys.ShiftLeft || keys.ShiftRight;
+    const running = wantRun && mag > 0 && !P.tired && P.st > 0;
+
+    P.dodgeCd -= dt;
+    if (input.dodgeReq) {
+      input.dodgeReq = false;
+      if (P.dodgeCd <= 0 && P.st >= 20 && !P.tired) {
+        const dx = mag > 0 ? mx : Math.cos(P.face), dy = mag > 0 ? my : Math.sin(P.face);
+        P.ddx = dx; P.ddy = dy; P.dodge = 0.24; P.dodgeCd = 0.6; P.st -= 25; P.stDelay = 0.7;
+        for (let i = 0; i < 6; i++) parts.push({ x: P.x, y: P.y + 8, vx: -dx * 60 + (R() - 0.5) * 50, vy: -dy * 60 + (R() - 0.5) * 50, t: 0.35, c: "#6d6450", s: 3 + R() * 3 });
+      }
+    }
+    let vx, vy;
+    if (P.dodge > 0) { P.dodge -= dt; vx = P.ddx * 430; vy = P.ddy * 430; }
+    else { const sp = (running ? 235 : 150) * mag * (P.swing > 0 ? 0.55 : 1); vx = mx * sp; vy = my * sp; }
+    P.x += vx * dt; P.y += vy * dt;
+    pushOut(P, "p");
+    if (mag > 0) P.walk += dt * (running ? 16 : 10);
+
+    if (running) { P.st -= 24 * dt; P.stDelay = 0.6; }
+    else if (P.stDelay > 0) P.stDelay -= dt;
+    else P.st += 20 * dt;
+    if (P.st <= 0) { P.st = 0; P.tired = true; }
+    if (P.tired && P.st > 30) P.tired = false;
+    P.st = clamp(P.st, 0, 100);
+
+    // hunger & thirst drain with in-game time; running makes you hungrier
+    const mult = running ? 1.6 : 1;
+    P.hu = Math.max(0, P.hu - (100 / (DAY * 1.5)) * dt * mult);
+    P.th = Math.max(0, P.th - (100 / DAY) * dt * mult);
+    if (P.hu <= 0 || P.th <= 0) {
+      starveTick -= dt;
+      if (starveTick <= 0) { starveTick = 1; P.hp -= (P.hu <= 0 ? 1.2 : 0) + (P.th <= 0 ? 1.8 : 0); if (P.hp <= 0) die(); }
+    }
+
+    if (mag > 0 && P.swing <= 0) P.face = Math.atan2(my, mx);
+
+    P.swingCd -= dt;
+    if (P.swing > 0) P.swing -= dt;
+    if (input.atk && P.swingCd <= 0 && P.dodge <= 0 && P.st >= 4 && !buildMode) swingAt();
+    if (P.inv > 0) P.inv -= dt;
+
+    useTarget = buildMode ? null : findUse();
+    if (input.useReq) { input.useReq = false; if (useTarget) doUse(useTarget); }
+  }
+
+  // regrowth + wreck restock
+  regrowTick -= dt;
+  if (regrowTick <= 0) {
+    regrowTick = 1;
+    for (const o of obs) if (o.depl && wt >= o.depl) { o.depl = 0; if (o.type === "tree") o.ch = 8; if (o.type === "rock") o.ch = 6; }
+  }
+
+  // horde nights: every 5th night the dead come for your camp
+  if (state === "play") {
+    const day = dayNum(), h = hour();
+    if (isHordeDay() && horde.warned < day && h >= 17) { horde.warned = day; toast("⚠ HORDE TONIGHT · fortify your camp by 21:00"); }
+    if (isHordeDay() && horde.done < day && h >= 21 && !horde.active) {
+      if (curZone === "home") {
+        horde.active = true; horde.day = day;
+        horde.total = Math.min(40, 10 + Math.floor(day * 1.2)); horde.toSpawn = horde.total; horde.left = horde.total; horde.spawnT = 0;
+        toast("THE HORDE IS HERE"); shake = 6; sfx("horde");
+      } else hordeHitsEmptyCamp(day);
+    }
+    if (horde.active) {
+      horde.spawnT -= dt;
+      if (horde.toSpawn > 0 && horde.spawnT <= 0) {
+        horde.spawnT = 3.5;
+        const side = ri(0, 3), t = 0.15 + R() * 0.7, m = 90;
+        const pt = side === 0 ? { x: WORLD * t, y: m } : side === 1 ? { x: WORLD - m, y: WORLD * t } : side === 2 ? { x: WORLD * t, y: WORLD - m } : { x: m, y: WORLD * t };
+        for (let i = 0; i < 3 && horde.toSpawn > 0; i++) {
+          const z = spawnZombie(pickType(HORDE_MIX), pt);
+          horde.toSpawn--;
+          if (z) { z.hordeM = true; z.chase = true; } else horde.left--;
+        }
+      }
+      if (horde.toSpawn <= 0 && horde.left <= 0) {
+        horde.active = false; horde.done = horde.day;
+        drops.push({ x: CAMP.x + 40, y: CAMP.y - 50, loot: [["canfood", 3], ["water", 3], ["bandage", 2], ["cloth", 3], ["scrap", 4], ["ironbar", 2], [R() < 0.5 ? "spear" : "spikebat", 1]] });
+        toast("You survived the horde! A supply crate landed in camp"); save();
+      } else if (h >= 5 && h < 12) { horde.active = false; horde.done = horde.day; for (const z of zombies) z.hordeM = false; toast("Dawn. The horde scatters."); }
+    }
+  }
+
+  groanT -= dt;
+  if (groanT <= 0) { groanT = 2 + R() * 4; if (zombies.some((z) => !z.dead && z.chase && dist(z.x, z.y, P.x, P.y) < 400)) sfx("groan"); }
+
+  // spawning
+  if (state === "play") {
+    const Z = ZONES[curZone];
+    if (grace > 0) grace -= dt;
+    spawnTimer -= dt;
+    const alive = zombies.filter((z) => !z.dead && !z.hordeM).length;
+    const cap = Math.min(28, Z.zcap + Math.floor(kills / 15) + Math.round(nightAmt() * 4));
+    if (!horde.active && grace <= 0 && spawnTimer <= 0 && alive < cap) {
+      const z = spawnZombie();
+      if (z && Z.packs && R() < 0.3) { const k = ri(1, 2); for (let i = 0; i < k; i++) spawnZombie(null, z); }
+      spawnTimer = Math.max(0.9, 2.8 - kills * 0.01 - nightAmt() * 0.8);
+    }
+    if (rabbits.length < Z.rabbits && R() < dt * 0.1) spawnRabbit(false);
+  }
+
+  // rabbits
+  for (const r of rabbits) {
+    const d = dist(r.x, r.y, P.x, P.y);
+    if (d < 170 && P.alive) r.flee = 2;
+    let dx, dy, sp;
+    if (r.flee > 0) { r.flee -= dt; dx = (r.x - P.x) / (d || 1); dy = (r.y - P.y) / (d || 1); sp = 125; }
+    else { r.wt -= dt; if (r.wt <= 0) { r.wa = R() * 6.28; r.wt = 1 + R() * 3; } dx = Math.cos(r.wa); dy = Math.sin(r.wa); sp = R() < 0.5 ? 0 : 40; }
+    r.x += dx * sp * dt; r.y += dy * sp * dt; if (sp) { r.face = Math.atan2(dy, dx); r.hop += dt * 14; }
+    pushOut(r, "a");
+  }
+  rabbits = rabbits.filter((r) => r.hp > 0 && dist(r.x, r.y, P.x, P.y) < 2400);
+
+  // zombies
+  for (const z of zombies) {
+    if (z.dead) { z.dead -= dt; continue; }
+    if (z.flash > 0) z.flash -= dt;
+    if (z.cd > 0) z.cd -= dt;
+    if (z.lunge > 0) z.lunge -= dt;
+    if (z.trapCd > 0) z.trapCd -= dt;
+    const d = dist(z.x, z.y, P.x, P.y);
+    if (z.alert > 0) z.alert -= dt;
+    z.chase = P.alive && (z.hordeM || z.boss || z.alert > 0 || d < AGGRO || (z.chase && d < LOSE));
+    if (z.boss || z.type === "brute") { if (bigBrain(z, d, dt)) continue; }
+    if (z.type === "screamer" && z.chase) {
+      z.scream = (z.scream == null ? 1 : z.scream) - dt;
+      if (z.scream <= 0) {
+        z.scream = 7; rings.push({ x: z.x, y: z.y, t: 0.9 }); sfx("scream");
+        for (const o of zombies) if (!o.dead && dist(o.x, o.y, z.x, z.y) < 650) { o.chase = true; o.alert = 8; }
+        if (!ZONES[curZone].vault && R() < 0.6) for (let i = 0; i < 2; i++) { const n = spawnZombie(null, { x: z.x + (R() - 0.5) * 400, y: z.y + (R() - 0.5) * 400 }); if (n) { n.chase = true; n.alert = 8; } }
+      }
+    }
+    let dx, dy, sp;
+    if (z.chase) { dx = (P.x - z.x) / (d || 1); dy = (P.y - z.y) / (d || 1); sp = z.speed; }
+    else {
+      z.wt -= dt;
+      if (z.wt <= 0) { z.wa = R() < 0.65 ? Math.atan2(P.y - z.y, P.x - z.x) + (R() - 0.5) * 1.4 : z.wa + (R() - 0.5) * 2.5; z.wt = 1 + R() * 2.5; }
+      dx = Math.cos(z.wa); dy = Math.sin(z.wa); sp = z.speed * 0.55;
+    }
+    for (const o of zombies) {
+      if (o === z || o.dead) continue;
+      const ox = z.x - o.x, oy = z.y - o.y, od = Math.hypot(ox, oy);
+      if (od < z.r + o.r && od > 0.01) { dx += (ox / od) * 0.6; dy += (oy / od) * 0.6; }
+    }
+    const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    z.face = Math.atan2(dy, dx);
+    const m = z.chase && d < z.r + P.r + 4 ? 0 : sp;
+    z.x += (dx * m + z.kx) * dt; z.y += (dy * m + z.ky) * dt;
+    const decay = Math.exp(-8 * dt); z.kx *= decay; z.ky *= decay;
+    z.step += dt * (m / 12);
+    const hitB = pushOut(z, "z");
+    if (!z.chase && (z.x <= 41 || z.y <= 41 || z.x >= WORLD - 41 || z.y >= WORLD - 41)) z.wa += Math.PI;
+
+    // smash whatever is in the way
+    if (hitB && z.chase && z.cd <= 0) {
+      z.cd = 1.2; z.lunge = 0.15; hitB.hp -= z.type === "bloater" ? 18 : 12;
+      for (let i = 0; i < 3; i++) parts.push({ x: hitB.x, y: hitB.y, vx: (R() - 0.5) * 80, vy: (R() - 0.5) * 80, t: 0.3, c: "#6a4f2c", s: 2.5 });
+      if (hitB.hp <= 0) destroyBuild(hitB);
+    }
+    // traps
+    for (const b of hb()) {
+      if (!PIECES[b.t].trap || z.trapCd > 0) continue;
+      if (Math.abs(z.x - b.x) < 22 && Math.abs(z.y - b.y) < 22) {
+        z.trapCd = 0.7; b.hp -= 10; hurtZombie(z, 18, 0, 0, 0, "trap");
+        if (b.hp <= 0) { removeBuild(b); toast("Spike trap wore out"); }
+        break;
+      }
+    }
+    if (z.dead) continue;
+    // bite
+    if (P.alive && state === "play" && d < z.r + P.r + 7 && z.cd <= 0 && z.type !== "brute" && !z.boss) {
+      z.cd = 1.1; z.lunge = 0.15;
+      if (P.inv <= 0 && P.dodge <= 0) {
+        const T = ZTYPES[z.type];
+        hurtPlayer(T.dmg[0] + Math.round(R() * (T.dmg[1] - T.dmg[0])));
+        const a = Math.atan2(P.y - z.y, P.x - z.x);
+        P.x += Math.cos(a) * 10; P.y += Math.sin(a) * 10; pushOut(P, "p");
+      }
+    }
+  }
+  zombies = zombies.filter((z) => !(z.dead < 0 && z.hp <= 0) && (z.hordeM || ZONES[curZone].vault || dist(z.x, z.y, P.x, P.y) < 1800));
+  for (const t of tracers) t.t -= dt;
+  tracers = tracers.filter((t) => t.t > 0);
+  for (const r of rings) {
+    r.t -= dt;
+    if (r.wave && !r.hitDone) { // the Colossus shockwave: dodge through it
+      const rad = (1 - r.t / 1.0) * 340, dd = dist(P.x, P.y, r.x, r.y);
+      if (Math.abs(dd - rad) < 20 && P.alive) { r.hitDone = true; if (P.dodge <= 0) hurtPlayer(30); }
+    }
+  }
+  rings = rings.filter((r) => r.t > 0);
+  for (const l of loose) if (P.alive && dist(l.x, l.y, P.x, P.y) < 30 && !l.got) { if (!addTo(bag, l.id, l.n)) { l.got = true; toast("+" + l.n + " " + ITEMS[l.id].n); sfx("loot"); } else if (!l.warned) { l.warned = true; toast("Backpack full · make room for the " + ITEMS[l.id].n.toLowerCase()); } }
+  loose = loose.filter((l) => !l.got);
+
+  for (const p of parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9; }
+  parts = parts.filter((p) => p.t > 0);
+  for (const n of nums) { n.t -= dt; n.y -= 30 * dt; }
+  nums = nums.filter((n) => n.t > 0);
+
+  if (state === "dying") {
+    deadTimer -= dt;
+    if (deadTimer <= 0.6) { ui.dead.classList.remove("hide"); ui.hud.classList.add("hide"); ui.btns.classList.add("hide"); state = "dead"; }
+  }
+
+  saveTimer -= dt;
+  if (saveTimer <= 0 && state === "play") { saveTimer = 15; save(); }
+}
+function hordeHitsEmptyCamp(day) {
+  horde.done = day; horde.away = day; horde.active = false;
+  if (garage.truck) return; // the armored truck guards camp
+  for (const b of builds.slice()) { const pc = PIECES[b.t]; if (pc.chest) continue; b.hp -= pc.hp * (0.3 + R() * 0.4); if (b.hp <= 0) removeBuild(b); }
+}
+// brutes and bosses telegraph their big attacks so you can dodge them.
+// returns true when it fully handled this zombie's movement this frame
+function bigBrain(z, d, dt) {
+  if (z.stun > 0) { z.stun -= dt; z.kx *= 0.8; z.ky *= 0.8; return true; }
+  const toP = Math.atan2(P.y - z.y, P.x - z.x);
+  if (z.type === "brute") {
+    if (z.wind > 0) {
+      z.wind -= dt; z.face = toP;
+      if (z.wind <= 0) {
+        z.cd = 1.4; shake = Math.max(shake, 8); rings.push({ x: z.x, y: z.y, t: 0.4, slam: 70 }); sfx("slam");
+        if (dist(z.x, z.y, P.x, P.y) < 70 + P.r) hurtPlayer(ZTYPES.brute.dmg[0] + R() * 6);
+      }
+      return true;
+    }
+    if (z.chase && d < 66 && z.cd <= 0) { z.wind = 0.8; return true; }
+    return false;
+  }
+  // bosses
+  const B = z.boss;
+  z.timer -= dt;
+  if (z.st === "tele") {
+    z.face = B === 1 ? z.lockA : toP;
+    if (z.timer <= 0) {
+      if (B === 1) { z.st = "charge"; z.timer = 0.65; sfx("roar"); }
+      else if (B === 3) { z.st = "walk"; z.timer = 4.5; rings.push({ x: z.x, y: z.y, t: 1.0, wave: true, hitDone: false }); shake = 10; sfx("slam"); }
+    }
+    return true;
+  }
+  if (z.st === "charge") {
+    const cx = Math.cos(z.lockA), cy = Math.sin(z.lockA);
+    z.x += cx * 440 * dt; z.y += cy * 440 * dt;
+    const before = { x: z.x, y: z.y };
+    pushOut(z, "z");
+    if (Math.abs(before.x - z.x) + Math.abs(before.y - z.y) > 2 || z.x <= 41 || z.y <= 41 || z.x >= WORLD - 41 || z.y >= WORLD - 41) {
+      z.st = "walk"; z.timer = 3.5; z.stun = 1.8; shake = 12; toast("The Warden is stunned · hit it hard!"); sfx("slam");
+    }
+    if (dist(z.x, z.y, P.x, P.y) < z.r + P.r) hurtPlayer(36);
+    if (z.timer <= 0) { z.st = "walk"; z.timer = 3.5; }
+    return true;
+  }
+  // walking phase: close in, melee when touching, start a special on the timer
+  if (z.timer <= 0) {
+    if (B === 1) { z.st = "tele"; z.timer = 0.9; z.lockA = toP; }
+    else if (B === 2) {
+      z.timer = 6; rings.push({ x: z.x, y: z.y, t: 0.6 }); sfx("scream");
+      for (let i = 0; i < 3; i++) { const n = makeZombie(i === 2 ? "bloater" : "crawler", z.x + (R() - 0.5) * 120, z.y + 40 + R() * 60); if (i === 2) { n.hp = n.max = 70; } n.chase = true; zombies.push(n); }
+    } else if (B === 3) { z.st = "tele"; z.timer = 0.85; }
+    return true;
+  }
+  if (d < z.r + P.r + 8 && z.cd <= 0) { z.cd = 1.3; z.lunge = 0.2; hurtPlayer(ZTYPES["boss" + B].dmg[0]); }
+  return false;
+}
+function deadTick(dt) { if (state === "dead" && deadTimer > 0) deadTimer -= dt; }
+
+function die() {
+  if (!P.alive) return;
+  P.hp = 0; P.alive = false; state = "dying"; deadTimer = 1.4;
+  if (buildMode) { buildMode = null; ui.buildbar.classList.add("hide"); }
+  clearInput();
+  const items = bag.filter(Boolean);
+  if (P.weapon) items.push(P.weapon);
+  if (P.armor) items.push(P.armor);
+  grave = items.length ? { x: P.x, y: P.y, items, zone: curZone } : null; // the old backpack is gone for good
+  bag = emptySlots(BAG_SLOTS); P.weapon = null; P.armor = null;
+  ui.deadstats.textContent = "Day " + dayNum() + " · " + kills + " kills total";
+  save();
+}
+
+// =============== HUD ===============
+let lastUse = "", lastIcon = "", lastAtk = "";
+function updateHud() {
+  ui.hp.style.width = clamp(P.hp / P.max * 100, 0, 100) + "%";
+  ui.st.style.width = P.st + "%";
+  ui.hu.style.width = P.hu + "%";
+  ui.th.style.width = P.th + "%";
+  ui.stb.classList.toggle("tired", P.tired);
+  ui.hub.classList.toggle("low", P.hu < 20);
+  ui.thb.classList.toggle("low", P.th < 20);
+  ui.hpb.classList.toggle("low", P.hp < 25);
+  const h = hour(), hh = Math.floor(h), mm = Math.floor((h - hh) * 6) * 10;
+  ui.day.textContent = "DAY " + dayNum() + " · " + (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm;
+  ui.kills.textContent = "KILLS " + kills;
+  const lab = useTarget ? useTarget.label : "";
+  if (lab !== lastUse) { lastUse = lab; ui.use.textContent = lab; ui.use.classList.toggle("hide", !lab); }
+  const ic = P.weapon ? ITEMS[P.weapon.id].i : "✊";
+  if (ic !== lastIcon) { lastIcon = ic; ui.atkic.innerHTML = ic; }
+  const tl = curTool(), lab2 = tl.gun ? countIn(bag, tl.ammo) + " AMMO" : "ATTACK";
+  if (lab2 !== lastAtk) { lastAtk = lab2; ui.atklab.textContent = lab2; }
+}
+
+// =============== drawing ===============
+function ellipse(x, y, rx, ry, rot) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); }
+function shadow(x, y, r) { ctx.fillStyle = "rgba(0,0,0,.35)"; ellipse(x + 3, y + r * 0.55, r * 1.05, r * 0.55); ctx.fill(); }
+function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+
+function drawTreeTrunk(o) {
+  if (o.depl) {
+    circ(o.x, o.y, o.r * 0.45, "#3a2c1c"); ctx.strokeStyle = "#5a4630"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 0.28, 0, 7); ctx.stroke(); return;
+  }
+  shadow(o.x + 6, o.y + 4, o.r * 1.1); circ(o.x, o.y, o.r * 0.38, "#2e2418");
+}
+function drawTreeTop(o) {
+  if (o.depl) return;
+  const g = Math.floor(38 + o.tone * 18), hurt = o.ch < 8 ? (8 - o.ch) * 3 : 0;
+  ctx.save();
+  if (hurt) ctx.translate(Math.sin(time * 30) * (P.swing > 0 ? 1 : 0), 0);
+  circ(o.x, o.y - 6, o.r * 1.25, "rgb(" + (g - 14 + hurt) + "," + (g + 18) + "," + (g - 8) + ")");
+  circ(o.x - o.r * 0.3, o.y - o.r * 0.5, o.r * 0.75, "rgb(" + (g - 4 + hurt) + "," + (g + 32) + "," + (g + 2) + ")");
+  circ(o.x - o.r * 0.45, o.y - o.r * 0.7, o.r * 0.35, "rgba(255,255,220,.05)");
+  ctx.restore();
+}
+function drawRock(o) {
+  if (o.depl) { circ(o.x, o.y, o.r * 0.5, "rgba(80,80,72,.35)"); return; }
+  shadow(o.x, o.y, o.r);
+  const k = 0.6 + (o.ch / 6) * 0.4;
+  ctx.fillStyle = "#56584f"; ctx.beginPath();
+  o.pts.forEach((p, i) => (i ? ctx.lineTo(o.x + p[0] * k, o.y + p[1] * k) : ctx.moveTo(o.x + p[0] * k, o.y + p[1] * k)));
+  ctx.closePath(); ctx.fill();
+  circ(o.x - o.r * 0.25 * k, o.y - o.r * 0.3 * k, o.r * 0.4 * k, "rgba(255,255,255,.08)");
+}
+function drawBush(o) {
+  circ(o.x + 2, o.y + 4, o.r, "rgba(0,0,0,.25)");
+  circ(o.x, o.y, o.r, "#2d4626"); circ(o.x - 4, o.y - 4, o.r * 0.65, "#365430");
+  if (!o.depl) for (let i = 0; i < 6; i++) { const a = o.berryRot + i * 1.05, d = o.r * 0.55; circ(o.x + Math.cos(a) * d, o.y + Math.sin(a) * d, 2.6, "#5b4a9c"); }
+}
+function drawPond(o) {
+  ellipse(o.x, o.y, o.r + 6, o.r * 0.8 + 6); ctx.fillStyle = "#2b2a1f"; ctx.fill();
+  ellipse(o.x, o.y, o.r, o.r * 0.8); ctx.fillStyle = "#1c3440"; ctx.fill();
+  ctx.strokeStyle = "rgba(160,200,220," + (0.12 + Math.sin(time * 2 + o.x) * 0.05) + ")"; ctx.lineWidth = 2;
+  ellipse(o.x - o.r * 0.2, o.y - o.r * 0.2, o.r * 0.45, o.r * 0.25); ctx.stroke();
+}
+function drawWreck(o) {
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot);
+  ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(-34, -14, 72, 34);
+  ctx.fillStyle = o.col; ctx.fillRect(-36, -17, 72, 34);
+  ctx.fillStyle = "#1a1c1c"; ctx.fillRect(-12, -14, 26, 28);
+  ctx.fillStyle = "rgba(120,60,30,.5)"; ctx.fillRect(18, -10, 10, 8); ctx.fillRect(-30, 4, 8, 9);
+  ctx.fillStyle = "#121212"; ctx.fillRect(-28, -20, 12, 4); ctx.fillRect(16, -20, 12, 4); ctx.fillRect(-28, 16, 12, 4); ctx.fillRect(16, 16, 12, 4);
+  ctx.restore();
+  if (wt >= o.lootAt) { ctx.strokeStyle = "rgba(217,164,65," + (0.35 + Math.sin(time * 3) * 0.2) + ")"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(o.x, o.y, 44, 0, 7); ctx.stroke(); }
+}
+function drawTent(o) {
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot);
+  ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(-30, -22, 66, 52);
+  ctx.fillStyle = o.col; ctx.fillRect(-34, -26, 68, 52);
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(-34, 0, 68, 26);
+  ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-34, 0); ctx.lineTo(34, 0); ctx.stroke();
+  ctx.fillStyle = "#1a1612"; ctx.beginPath(); ctx.moveTo(26, -10); ctx.lineTo(36, 0); ctx.lineTo(26, 10); ctx.fill();
+  ctx.restore();
+}
+function drawCrateBox(x, y, r, open) {
+  shadow(x, y, r);
+  ctx.fillStyle = open ? "#4a3820" : "#6a4f2c"; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.strokeStyle = "#3d2c17"; ctx.lineWidth = 2; ctx.strokeRect(x - r + 1, y - r + 1, r * 2 - 2, r * 2 - 2);
+  if (!open) { ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.stroke(); }
+}
+function drawLog(o) {
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot);
+  ctx.fillStyle = "rgba(0,0,0,.3)"; ellipse(2, 4, 24, 9); ctx.fill();
+  ctx.fillStyle = "#4a3620"; ellipse(0, 0, 24, 8); ctx.fill();
+  ctx.fillStyle = "#7a5a34"; ellipse(22, 0, 3, 7); ctx.fill();
+  ctx.restore();
+}
+function drawFire(x, y) {
+  circ(x, y, 16, "#2b2622");
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; circ(x + Math.cos(a) * 16, y + Math.sin(a) * 16, 4.5, "#5c5a55"); }
+  const f = 0.8 + Math.sin(time * 13 + x) * 0.1 + Math.sin(time * 7.3) * 0.1;
+  circ(x, y, 10 * f, "#c2441c"); circ(x + Math.sin(time * 9) * 1.5, y - 1, 6 * f, "#f0a030"); circ(x, y - 1, 2.6 * f, "#ffe08a");
+}
+function drawBuild(b, ghost) {
+  const pc = PIECES[b.t], x = b.x, y = b.y, h = CELL / 2;
+  if (b.t === "wwall" || b.t === "door") {
+    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(x - h + 3, y - h + 5, CELL, CELL);
+    ctx.fillStyle = b.t === "door" ? "#5a4026" : "#6b4c2a"; ctx.fillRect(x - h, y - h, CELL, CELL);
+    ctx.strokeStyle = "#3a2814"; ctx.lineWidth = 2;
+    for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x - h, y - h + i * 10); ctx.lineTo(x + h, y - h + i * 10); ctx.stroke(); }
+    ctx.strokeRect(x - h + 1, y - h + 1, CELL - 2, CELL - 2);
+    if (b.t === "door") { ctx.strokeStyle = "#2a1c0e"; ctx.lineWidth = 4; ctx.strokeRect(x - h + 4, y - h + 4, CELL - 8, CELL - 8); circ(x + 9, y, 3, "#b89a5a"); }
+  } else if (b.t === "swall") {
+    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(x - h + 3, y - h + 5, CELL, CELL);
+    ctx.fillStyle = "#62645a"; ctx.fillRect(x - h, y - h, CELL, CELL);
+    ctx.strokeStyle = "#3e403a"; ctx.lineWidth = 2;
+    ctx.strokeRect(x - h + 1, y - h + 1, CELL - 2, CELL - 2);
+    ctx.beginPath(); ctx.moveTo(x - h, y); ctx.lineTo(x + h, y); ctx.moveTo(x, y - h); ctx.lineTo(x, y); ctx.moveTo(x - 10, y); ctx.lineTo(x - 10, y + h); ctx.moveTo(x + 10, y); ctx.lineTo(x + 10, y + h); ctx.stroke();
+  } else if (b.t === "spikes") {
+    ctx.fillStyle = "rgba(60,45,25,.6)"; ctx.fillRect(x - h + 4, y - h + 4, CELL - 8, CELL - 8);
+    ctx.fillStyle = "#a08a62";
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const px = x - 11 + i * 11, py = y - 11 + j * 11; ctx.beginPath(); ctx.moveTo(px, py - 6); ctx.lineTo(px + 4, py + 4); ctx.lineTo(px - 4, py + 4); ctx.fill(); }
+  } else if (b.t === "chest") {
+    drawCrateBox(x, y, 16, false); ctx.fillStyle = "#8a8a7a"; ctx.fillRect(x - 16, y - 3, 32, 5);
+  } else if (b.t === "fire") drawFire(x, y);
+  else if (b.t === "bench") {
+    shadow(x, y, 18); ctx.fillStyle = "#5e4428"; ctx.fillRect(x - 20, y - 13, 40, 26);
+    ctx.fillStyle = "#3e2c18"; ctx.fillRect(x - 20, y - 13, 40, 5);
+    ctx.fillStyle = "#9a9a8a"; ctx.fillRect(x - 12, y - 2, 12, 4); ctx.fillStyle = "#7a5a34"; ctx.fillRect(x + 4, y - 4, 4, 12);
+  } else if (b.t === "furnace") {
+    shadow(x, y, 18); ctx.fillStyle = "#55574e"; ctx.fillRect(x - 18, y - 18, 36, 36);
+    ctx.fillStyle = "#2a2a26"; ctx.fillRect(x - 9, y - 2, 18, 14);
+    ctx.fillStyle = "rgba(240,140,40," + (0.6 + Math.sin(time * 8) * 0.2) + ")"; ctx.fillRect(x - 7, y + 4, 14, 7);
+  }
+  if (!ghost && b.hp < pc.hp) {
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(x - 15, y - h - 8, 30, 4);
+    ctx.fillStyle = "#c08a3a"; ctx.fillRect(x - 15, y - h - 8, 30 * b.hp / pc.hp, 4);
+  }
+}
+function drawRabbit(r) {
+  ctx.save(); ctx.translate(r.x, r.y - Math.abs(Math.sin(r.hop)) * 3); ctx.rotate(r.face);
+  circ(1, 3, 6, "rgba(0,0,0,.3)");
+  ctx.fillStyle = "#8a7558"; ellipse(0, 0, 8, 5.5); ctx.fill();
+  circ(7, 0, 4, "#9a8566"); ctx.fillStyle = "#b9a684"; ellipse(4, -3, 4, 1.5, -0.3); ctx.fill(); ellipse(4, 3, 4, 1.5, 0.3); ctx.fill();
+  circ(-8, 0, 2.4, "#d8d0c0");
+  ctx.restore();
+}
+function drawGrave() {
+  const g = grave, p = 0.5 + Math.sin(time * 4) * 0.5;
+  ctx.strokeStyle = "rgba(217,164,65," + (0.3 + p * 0.4) + ")"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(g.x, g.y, 20 + p * 6, 0, 7); ctx.stroke();
+  shadow(g.x, g.y, 10); ctx.fillStyle = "#5c4a30"; ellipse(g.x, g.y, 11, 9); ctx.fill();
+  ctx.fillStyle = "#3e3020"; ctx.fillRect(g.x - 8, g.y - 3, 16, 3);
+}
+
+function drawPlayer() {
+  ctx.save(); ctx.translate(P.x, P.y);
+  shadow(0, 0, P.r);
+  ctx.rotate(P.face);
+  if (P.inv > 0 && Math.floor(time * 20) % 2 === 0) ctx.globalAlpha = 0.55;
+  const bob = Math.sin(P.walk) * 3;
+  ctx.fillStyle = "#1f1b16"; ellipse(bob, -6, 5, 3.5); ctx.fill(); ellipse(-bob, 6, 5, 3.5); ctx.fill();
+  let a = 0.75;
+  const gun = P.weapon && ITEMS[P.weapon.id].tool && ITEMS[P.weapon.id].tool.gun;
+  if (P.swing > 0 && !gun) { const k = 1 - P.swing / SWING_TIME; a = 1.35 - 2.7 * k; }
+  const tl = curTool(), len = P.weapon ? Math.min(52, 18 + tl.rng * 0.4) : 0;
+  if (P.swing > 0 && !gun) {
+    const k = 1 - P.swing / SWING_TIME;
+    ctx.strokeStyle = "rgba(232,226,208," + (0.35 * (1 - k)) + ")"; ctx.lineWidth = 14; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(0, 0, P.weapon ? len : 26, a, 1.35); ctx.stroke();
+  }
+  ctx.fillStyle = P.armor ? "#5e4a30" : "#4e5b3c"; ellipse(0, 0, 9, 15); ctx.fill();
+  ctx.fillStyle = P.armor ? "#4a3a24" : "#3a4530"; ellipse(-3, 0, 5, 13); ctx.fill();
+  ctx.save(); ctx.rotate(a);
+  if (P.weapon) {
+    const id = P.weapon.id;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = id === "machete" ? "#3a2a1a" : "#7a5a34"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(len, 0); ctx.stroke();
+    if (ITEMS[id].tool && ITEMS[id].tool.gun) {
+      ctx.restore(); ctx.save();
+      ctx.fillStyle = "#2a2a2a"; ctx.fillRect(8, 6, id === "rifle" ? 36 : 18, 4); ctx.fillStyle = "#5a3a22"; if (id === "rifle") ctx.fillRect(2, 5, 12, 6);
+      circ(10, 8, 4, "#c79f7a");
+    } else if (id === "axe") { ctx.fillStyle = "#77786e"; ctx.beginPath(); ctx.moveTo(len - 8, -2); ctx.lineTo(len - 2, -11); ctx.lineTo(len + 2, -2); ctx.fill(); }
+    else if (id === "pick") { ctx.strokeStyle = "#77786e"; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(len - 2, -10); ctx.quadraticCurveTo(len + 3, 0, len - 2, 10); ctx.stroke(); }
+    else if (id === "spear") { ctx.fillStyle = "#8a8a80"; ctx.beginPath(); ctx.moveTo(len, -4); ctx.lineTo(len + 10, 0); ctx.lineTo(len, 4); ctx.fill(); }
+    else if (id === "machete") { ctx.strokeStyle = "#b8bab0"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(len + 4, 0); ctx.stroke(); }
+    else { ctx.strokeStyle = id === "spikebat" ? "#8a6a42" : "#6b4c2a"; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(len - 14, 0); ctx.lineTo(len, 0); ctx.stroke();
+      if (id === "spikebat") { ctx.strokeStyle = "#aaa"; ctx.lineWidth = 1.5; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(len - 12 + i * 5, -4); ctx.lineTo(len - 12 + i * 5, -8); ctx.moveTo(len - 10 + i * 5, 4); ctx.lineTo(len - 10 + i * 5, 8); ctx.stroke(); } } }
+  }
+  circ(10, 0, 4, "#c79f7a");
+  ctx.restore();
+  circ(1, 0, 7.5, "#c79f7a");
+  ctx.fillStyle = "#7a2a22"; ctx.beginPath(); ctx.arc(-1, 0, 7.6, Math.PI * 0.5, Math.PI * 1.5); ctx.fill();
+  ellipse(6, 0, 4, 6.5); ctx.fill();
+  ctx.restore();
+}
+function drawZombie(z) {
+  ctx.save(); ctx.translate(z.x, z.y);
+  if (z.dead) {
+    ctx.globalAlpha = clamp(z.dead / 1.6, 0, 1) * 0.8; ctx.rotate(z.face);
+    if (z.type === "bloater") { circ(0, 0, 22, "rgba(90,106,42,.5)"); }
+    ctx.fillStyle = "#33392c"; ellipse(0, 0, 16, 10); ctx.fill(); circ(14, 2, 7, "#4b5440");
+    ctx.restore(); return;
+  }
+  const t = z.type;
+  if (z.boss || t === "brute" || t === "armored") { ctx.restore(); drawBig(z); return; }
+  if (t === "crawler" && !z.chase) ctx.globalAlpha = 0.5; // hard to spot in the grass
+  if (z.key) { ctx.strokeStyle = "rgba(230,190,70," + (0.5 + Math.sin(time * 5) * 0.3) + ")"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, z.r + 7, 0, 7); ctx.stroke(); }
+  shadow(0, 0, z.r);
+  ctx.rotate(z.face);
+  const sway = Math.sin(z.step) * 2.5, reach = z.lunge > 0 ? 8 : 0;
+  const skin = t === "runner" ? "#8a8466" : t === "bloater" ? "#7d8a4a" : t === "screamer" ? "#a69a86" : z.tone < 0.5 ? "#6f7a5c" : "#7d7a62";
+  if (t === "crawler") {
+    ctx.strokeStyle = skin; ctx.lineWidth = 4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(4, -6); ctx.lineTo(18 + reach + sway, -12); ctx.moveTo(4, 6); ctx.lineTo(18 + reach - sway, 12); ctx.stroke();
+    ctx.fillStyle = "#3a3d33"; ellipse(-4, 0, 14, 8); ctx.fill();
+    circ(8, 0, 6.5, skin);
+  } else {
+    ctx.fillStyle = "#1c1f18"; ellipse(sway, -6, 5, 3.5); ctx.fill(); ellipse(-sway, 6, 5, 3.5); ctx.fill();
+    ctx.strokeStyle = skin; ctx.lineWidth = t === "bloater" ? 6 : 4.5; ctx.lineCap = "round";
+    const ar = t === "bloater" ? 1.25 : 1;
+    ctx.beginPath(); ctx.moveTo(2, -10 * ar); ctx.lineTo(20 + reach + sway, -8 * ar); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2, 10 * ar); ctx.lineTo(19 + reach - sway, 9 * ar); ctx.stroke();
+    if (t === "bloater") {
+      const pulse = 1 + Math.sin(time * 6 + z.tone * 10) * 0.06;
+      ctx.fillStyle = "#5e6a36"; ellipse(-2, 0, 15 * pulse, 19 * pulse); ctx.fill();
+      circ(-4, -6, 4, "#8a9a4a"); circ(-6, 7, 3, "#8a9a4a");
+    } else { ctx.fillStyle = t === "screamer" ? "#2e2a3a" : t === "runner" ? "#5a2e26" : z.tone < 0.33 ? "#3f4650" : z.tone < 0.66 ? "#4f3f36" : "#44483a"; ellipse(0, 0, 9, t === "runner" ? 13 : 15); ctx.fill(); }
+    circ(t === "bloater" ? 6 : 2, 0, t === "runner" ? 7 : 7.5, skin);
+  }
+  if (t === "screamer") { ctx.fillStyle = "#1a0e0e"; ellipse(9, 0, 3, 3.5); ctx.fill(); }
+  const ex = t === "crawler" ? 12 : t === "bloater" ? 11 : 7;
+  ctx.fillStyle = t === "runner" ? "#ff5a3a" : "#c33a2a"; ctx.beginPath(); ctx.arc(ex, -3, 1.4, 0, 7); ctx.arc(ex, 3, 1.4, 0, 7); ctx.fill();
+  if (z.flash > 0) { ctx.globalAlpha = 0.7; ctx.fillStyle = "#fff"; ellipse(0, 0, z.r * 0.7, z.r); ctx.fill(); }
+  ctx.restore();
+  if (z.hp < z.max) {
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(z.x - 14, z.y - z.r - 13, 28, 4);
+    ctx.fillStyle = "#b8322a"; ctx.fillRect(z.x - 14, z.y - z.r - 13, 28 * Math.max(0, z.hp) / z.max, 4);
+  }
+}
+function drawBig(z) {
+  const t = z.type, r = z.r;
+  ctx.save(); ctx.translate(z.x, z.y);
+  if (z.key) { ctx.strokeStyle = "rgba(230,190,70,.7)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r + 8, 0, 7); ctx.stroke(); }
+  // telegraphs: brute slam circle, Warden charge lane, Colossus wind-up
+  if (z.wind > 0) { ctx.fillStyle = "rgba(208,60,40," + (0.15 + (0.8 - z.wind) * 0.35) + ")"; ctx.beginPath(); ctx.arc(0, 0, 70, 0, 7); ctx.fill(); }
+  if (z.st === "tele" && z.boss === 1) { ctx.save(); ctx.rotate(z.lockA); ctx.fillStyle = "rgba(208,60,40,.22)"; ctx.fillRect(0, -r, 900, r * 2); ctx.restore(); }
+  if (z.st === "tele" && z.boss === 3) { ctx.strokeStyle = "rgba(208,60,40,.6)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, r + 20 + (0.85 - z.timer) * 40, 0, 7); ctx.stroke(); }
+  shadow(0, 0, r);
+  ctx.rotate(z.face);
+  const sway = Math.sin(z.step) * 3, reach = z.lunge > 0 ? 10 : 0;
+  const skin = t === "boss2" ? "#8a9a4a" : t === "boss3" || t === "armored" ? "#7a7a6c" : "#6e7558";
+  ctx.strokeStyle = skin; ctx.lineWidth = r * 0.42; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(2, -r * 0.7); ctx.lineTo(r * 1.25 + reach + sway, -r * 0.6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2, r * 0.7); ctx.lineTo(r * 1.2 + reach - sway, r * 0.6); ctx.stroke();
+  if (t === "boss2") {
+    const p = 1 + Math.sin(time * 4) * 0.05;
+    ctx.fillStyle = "#5e6a36"; ellipse(-4, 0, r * p, r * 1.1 * p); ctx.fill();
+    for (let i = 0; i < 6; i++) circ(-r * 0.4 + Math.cos(i) * r * 0.5, Math.sin(i * 2) * r * 0.6, r * 0.16, "#9aaa52");
+  } else {
+    ctx.fillStyle = t === "armored" || t === "boss3" ? "#4a4e50" : t === "boss1" ? "#3a3428" : "#4a3f30";
+    ellipse(0, 0, r * 0.68, r * 1.02); ctx.fill();
+    if (t === "armored" || t === "boss3") { ctx.strokeStyle = "#8a9094"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-r * 0.4, -r * 0.8); ctx.lineTo(-r * 0.4, r * 0.8); ctx.moveTo(r * 0.1, -r * 0.9); ctx.lineTo(r * 0.1, r * 0.9); ctx.stroke(); }
+    if (t === "boss1") { ctx.fillStyle = "#c8b060"; ctx.fillRect(-r * 0.2, -r * 0.9, r * 0.3, r * 1.8); }
+  }
+  circ(r * 0.25, 0, r * 0.42, skin);
+  if (t === "armored" || t === "boss3") { ctx.fillStyle = "#5a5e60"; ctx.beginPath(); ctx.arc(r * 0.2, 0, r * 0.44, Math.PI * 0.5, Math.PI * 1.5); ctx.fill(); }
+  ctx.fillStyle = z.boss ? "#ff3a2a" : "#c33a2a"; ctx.beginPath(); ctx.arc(r * 0.5, -r * 0.15, 2.2, 0, 7); ctx.arc(r * 0.5, r * 0.15, 2.2, 0, 7); ctx.fill();
+  if (z.stun > 0) { ctx.rotate(-z.face); ctx.font = "bold 16px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillStyle = "#e8d070"; ctx.fillText("✦ STUNNED ✦", 0, -r - 12); }
+  if (z.flash > 0) { ctx.globalAlpha = 0.6; ctx.fillStyle = "#fff"; ellipse(0, 0, r * 0.7, r); ctx.fill(); }
+  ctx.restore();
+  if (!z.boss && z.hp < z.max) {
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(z.x - 20, z.y - r - 14, 40, 5);
+    ctx.fillStyle = "#b8322a"; ctx.fillRect(z.x - 20, z.y - r - 14, 40 * Math.max(0, z.hp) / z.max, 5);
+  }
+}
+function drawStairs(o) {
+  ctx.fillStyle = "#1a1a1c"; ctx.fillRect(o.x - 46, o.y - 34, 92, 68);
+  for (let i = 0; i < 5; i++) { ctx.fillStyle = "rgb(" + (60 - i * 9) + "," + (60 - i * 9) + "," + (64 - i * 9) + ")"; ctx.fillRect(o.x - 42, o.y - 30 + i * 12, 84, 10); }
+  ctx.fillStyle = "#c8a65a"; ctx.font = "bold 11px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillText(countIn(bag, "keycard") ? "STAIRS · UNLOCKED" : "STAIRS · LOCKED", o.x, o.y + 50);
+}
+function drawFloor(o) {
+  ctx.fillStyle = o.col; ctx.fillRect(o.x - o.w / 2, o.y - o.h / 2, o.w, o.h);
+  ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1;
+  for (let y = o.y - o.h / 2 + 24; y < o.y + o.h / 2; y += 24) { ctx.beginPath(); ctx.moveTo(o.x - o.w / 2, y); ctx.lineTo(o.x + o.w / 2, y); ctx.stroke(); }
+}
+function drawWall(o) {
+  ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(o.x - o.w / 2 + 3, o.y - o.h / 2 + 5, o.w, o.h);
+  ctx.fillStyle = o.sandbag ? "#6a6040" : o.pillar ? "#2a2b2e" : "#4e4a40"; ctx.fillRect(o.x - o.w / 2, o.y - o.h / 2, o.w, o.h);
+  if (o.sandbag) { ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1; for (let x = o.x - o.w / 2 + 16; x < o.x + o.w / 2; x += 16) { ctx.beginPath(); ctx.moveTo(x, o.y - o.h / 2); ctx.lineTo(x, o.y + o.h / 2); ctx.stroke(); } }
+  ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fillRect(o.x - o.w / 2, o.y - o.h / 2, o.w, 3);
+}
+function drawCache(o) {
+  const full = wt >= o.lootAt, x = o.x, y = o.y, k = o.kind;
+  shadow(x, y, 14);
+  if (k === "pump") { ctx.fillStyle = "#7a2a22"; ctx.fillRect(x - 10, y - 16, 20, 32); ctx.fillStyle = "#c8c0a0"; ctx.fillRect(x - 6, y - 11, 12, 8); ctx.strokeStyle = "#222"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 10, y); ctx.quadraticCurveTo(x + 18, y + 6, x + 14, y + 14); ctx.stroke(); }
+  else if (k === "fridge") { ctx.fillStyle = "#b8b4a4"; ctx.fillRect(x - 13, y - 15, 26, 30); ctx.fillStyle = "#8a8678"; ctx.fillRect(x - 13, y - 3, 26, 2); }
+  else if (k === "toolbox") { ctx.fillStyle = "#8a2a1a"; ctx.fillRect(x - 15, y - 9, 30, 18); ctx.fillStyle = "#333"; ctx.fillRect(x - 5, y - 13, 10, 4); }
+  else if (k === "milcrate") { ctx.fillStyle = "#4a5232"; ctx.fillRect(x - 17, y - 11, 34, 22); ctx.strokeStyle = "#2e3420"; ctx.lineWidth = 2; ctx.strokeRect(x - 16, y - 10, 32, 20); ctx.fillStyle = "#c8c090"; ctx.fillRect(x - 4, y - 3, 8, 6); }
+  else if (k === "vaultbox") { ctx.fillStyle = "#6a5a2a"; ctx.fillRect(x - 15, y - 16, 30, 32); ctx.fillStyle = "#c8a65a"; ctx.fillRect(x - 3, y - 4, 6, 8); }
+  else if (k === "medcab") { ctx.fillStyle = "#d8d4c8"; ctx.fillRect(x - 13, y - 13, 26, 26); ctx.fillStyle = "#b8322a"; ctx.fillRect(x - 2, y - 8, 4, 16); ctx.fillRect(x - 8, y - 2, 16, 4); }
+  else if (k === "bed") { ctx.fillStyle = "#8a8a84"; ctx.fillRect(x - 12, y - 18, 24, 36); ctx.fillStyle = "#c8c8c0"; ctx.fillRect(x - 10, y - 16, 20, 9); }
+  else if (k === "evidence" || k === "desk") { ctx.fillStyle = k === "desk" ? "#5a4630" : "#3e4a52"; ctx.fillRect(x - 16, y - 11, 32, 22); ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.fillRect(x - 12, y - 7, 10, 6); }
+  else if (k === "locker") { ctx.fillStyle = "#4a5a62"; ctx.fillRect(x - 13, y - 15, 26, 30); ctx.strokeStyle = "#2a343a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 15); ctx.lineTo(x, y + 15); ctx.stroke(); }
+  else { ctx.fillStyle = k === "cabinet" ? "#5e4428" : "#5a5648"; ctx.fillRect(x - 16, y - 10, 32, 20); ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.fillRect(x - 16, y - 1, 32, 2); }
+  if (full) { ctx.strokeStyle = "rgba(217,164,65," + (0.3 + Math.sin(time * 3 + x) * 0.2) + ")"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 24, 0, 7); ctx.stroke(); }
+}
+function drawExit(o) {
+  ctx.fillStyle = "rgba(40,36,28,.9)"; ctx.fillRect(o.x - 46, o.y - 10, 92, 200);
+  ctx.strokeStyle = "rgba(200,180,120,.35)"; ctx.setLineDash([14, 12]); ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x, o.y + 190); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#3a2c1c"; ctx.fillRect(o.x - 3, o.y - 30, 6, 30);
+  ctx.fillStyle = "#c8a65a"; ctx.fillRect(o.x - 30, o.y - 44, 60, 18);
+  ctx.fillStyle = "#1a1612"; ctx.font = "bold 11px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillText(o.elevator ? "ELEVATOR" : "ROAD", o.x, o.y - 31);
+}
+function drawDeadPlayer() {
+  ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.face + 1.4); ctx.globalAlpha = 0.9;
+  ctx.fillStyle = "#3a4530"; ellipse(0, 0, 16, 10); ctx.fill(); circ(14, 0, 7, "#c79f7a");
+  ctx.restore();
+}
+function edgeArrow(wx, wy, camX, camY, col, label) {
+  const sx = wx - camX, sy = wy - camY;
+  if (sx > 20 && sx < VW - 20 && sy > 20 && sy < VH - 20) return;
+  const cx = VW / 2, cy = VH / 2, a = Math.atan2(sy - cy, sx - cx);
+  const m = 46, ex = clamp(cx + Math.cos(a) * VW, m, VW - m), ey = clamp(cy + Math.sin(a) * VH, m + 40, VH - m);
+  ctx.save(); ctx.translate(ex, ey);
+  ctx.fillStyle = "rgba(10,12,9,.7)"; ctx.beginPath(); ctx.arc(0, 0, 17, 0, 7); ctx.fill();
+  ctx.rotate(a); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(4, -6); ctx.lineTo(4, 6); ctx.fill();
+  ctx.rotate(-a); ctx.font = "bold 10px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillStyle = col; ctx.fillText(label, 0, 4);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const camX = clamp(P.x - VW / 2, -80, WORLD - VW + 80);
+  const camY = clamp(P.y - VH / 2, -80, WORLD - VH + 80);
+  const sx = (R() - 0.5) * shake, sy = (R() - 0.5) * shake;
+  ctx.fillStyle = "#0d100c"; ctx.fillRect(0, 0, VW, VH);
+  ctx.save(); ctx.translate(Math.round(-camX + sx), Math.round(-camY + sy));
+  const x0 = camX - 90, y0 = camY - 90, x1 = camX + VW + 90, y1 = camY + VH + 90;
+  const inView = (x, y, r) => x + r > x0 && x - r < x1 && y + r > y0 && y - r < y1;
+
+  const home = curZone === "home";
+  ctx.fillStyle = getZone(curZone).ground; ctx.fillRect(0, 0, WORLD, WORLD);
+  for (const d of decals) {
+    if (!inView(d.x, d.y, d.r)) continue;
+    if (d.tuft) {
+      ctx.strokeStyle = "rgba(90,110,60," + (d.a * 2.2) + ")"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 3, d.y - 7); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + 1, d.y - 8); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + 4, d.y - 6); ctx.stroke();
+    } else circ(d.x, d.y, d.r, d.dark ? "rgba(0,0,0," + d.a + ")" : "rgba(80,90,50," + d.a + ")");
+  }
+  if (home) {
+    const cg = ctx.createRadialGradient(CAMP.x, CAMP.y, 40, CAMP.x, CAMP.y, CAMP.r);
+    cg.addColorStop(0, "rgba(74,62,44,.95)"); cg.addColorStop(0.8, "rgba(60,52,38,.7)"); cg.addColorStop(1, "rgba(60,52,38,0)");
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y, CAMP.r, 0, 7); ctx.fill();
+  }
+  if (buildMode && home) { ctx.strokeStyle = "rgba(217,164,65,.35)"; ctx.setLineDash([8, 8]); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y, CAMP.r - 10, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.strokeStyle = "#070907"; ctx.lineWidth = 60; ctx.strokeRect(-30, -30, WORLD + 60, WORLD + 60);
+
+  for (const o of obs) {
+    if (!inView(o.x, o.y, o.r * 2)) continue;
+    const t = o.type;
+    if (t === "pond") drawPond(o);
+    else if (t === "floor") drawFloor(o);
+    else if (t === "exit") drawExit(o);
+    else if (t === "stairs") drawStairs(o);
+  }
+  for (const b of hb()) if (PIECES[b.t].trap && inView(b.x, b.y, 30)) drawBuild(b);
+  for (const o of obs) {
+    if (!inView(o.x, o.y, o.r * 2)) continue;
+    const t = o.type;
+    if (t === "rock") drawRock(o);
+    else if (t === "tree") drawTreeTrunk(o);
+    else if (t === "bush") drawBush(o);
+    else if (t === "wreck") drawWreck(o);
+    else if (t === "tent") drawTent(o);
+    else if (t === "crate") drawCrateBox(o.x, o.y, o.r, !(o.loot && o.loot.length));
+    else if (t === "log") drawLog(o);
+    else if (t === "fire") drawFire(o.x, o.y);
+    else if (t === "cache") drawCache(o);
+  }
+  for (const o of obs) if (o.type === "wall" && inView(o.x, o.y, Math.max(o.w, o.h))) drawWall(o);
+  for (const b of hb()) if (!PIECES[b.t].trap && inView(b.x, b.y, 30)) drawBuild(b);
+  if (home) for (const c of drops) if (inView(c.x, c.y, 30)) { drawCrateBox(c.x, c.y, 18, false); ctx.strokeStyle = "rgba(217,164,65,.6)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y, 28 + Math.sin(time * 4) * 3, 0, 7); ctx.stroke(); }
+  if (grave && grave.zone === curZone && inView(grave.x, grave.y, 30)) drawGrave();
+  for (const z of zombies) if (z.dead && inView(z.x, z.y, 30)) drawZombie(z);
+  for (const p of parts) { ctx.globalAlpha = clamp(p.t * 2, 0, 1); circ(p.x, p.y, p.s, p.c); }
+  ctx.globalAlpha = 1;
+  for (const r of rabbits) if (inView(r.x, r.y, 20)) drawRabbit(r);
+  for (const l of loose) { const b = Math.sin(time * 5) * 3; ctx.strokeStyle = "rgba(230,190,70,.8)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(l.x, l.y, 16 + b, 0, 7); ctx.stroke(); ctx.font = "18px sans-serif"; ctx.textAlign = "center"; ctx.fillText(ITEMS[l.id].i, l.x, l.y + 6); }
+  for (const r of rings) {
+    if (r.wave) { const rad = (1 - r.t / 1.0) * 340; ctx.strokeStyle = "rgba(220,90,50," + r.t + ")"; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, 7); ctx.stroke(); }
+    else if (r.slam) { ctx.fillStyle = "rgba(200,170,120," + r.t + ")"; ctx.beginPath(); ctx.arc(r.x, r.y, r.slam * (1.2 - r.t), 0, 7); ctx.fill(); }
+    else { ctx.strokeStyle = "rgba(200,180,230," + r.t * 0.7 + ")"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r.x, r.y, (1 - r.t) * 650, 0, 7); ctx.stroke(); }
+  }
+
+  // use highlight
+  if (useTarget && state === "play") {
+    const o = useTarget.obj, rr = (o.r || 18) + 10;
+    ctx.strokeStyle = "rgba(217,164,65,.7)"; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(o.x, o.y, rr, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // build ghost
+  if (buildMode && state === "play") {
+    const { gx, gy } = ghostCell(), gxp = gx * CELL + CELL / 2, gyp = gy * CELL + CELL / 2;
+    if (buildMode.t === "remove") {
+      const b = buildAtCell(gx, gy);
+      ctx.strokeStyle = b ? "rgba(208,103,94,.9)" : "rgba(232,226,208,.3)"; ctx.lineWidth = 2;
+      ctx.strokeRect(gx * CELL, gy * CELL, CELL, CELL);
+    } else {
+      const ok = !canPlace(buildMode.t, gx, gy) && hasAll(PIECES[buildMode.t].need);
+      ctx.globalAlpha = 0.55; drawBuild({ t: buildMode.t, x: gxp, y: gyp, hp: 1 }, true); ctx.globalAlpha = 1;
+      ctx.strokeStyle = ok ? "rgba(159,194,122,.9)" : "rgba(208,103,94,.9)"; ctx.lineWidth = 2;
+      ctx.strokeRect(gx * CELL, gy * CELL, CELL, CELL);
+    }
+  }
+
+  const actors = zombies.filter((z) => !z.dead && inView(z.x, z.y, 30));
+  if (P.alive) actors.push(P); else if (state !== "title") drawDeadPlayer();
+  actors.sort((a, b) => a.y - b.y);
+  for (const a of actors) a === P ? drawPlayer() : drawZombie(a);
+  for (const o of obs) if (o.type === "tree" && inView(o.x, o.y, o.r * 2)) drawTreeTop(o);
+  for (const t of tracers) { ctx.strokeStyle = "rgba(255,230,150," + (t.t * 10) + ")"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(t.x1, t.y1); ctx.lineTo(t.x2, t.y2); ctx.stroke(); circ(t.x1, t.y1, 6 * t.t * 10, "rgba(255,200,90,.8)"); }
+  ctx.font = "bold 14px Trebuchet MS, sans-serif"; ctx.textAlign = "center";
+  for (const n of nums) { ctx.globalAlpha = clamp(n.t * 1.6, 0, 1); ctx.fillStyle = "#000"; ctx.fillText(n.v, n.x + 1, n.y + 1); ctx.fillStyle = "#f2e6c4"; ctx.fillText(n.v, n.x, n.y); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // lighting: night darkens everything except near the player and campfires
+  const night = ZONES[curZone].vault ? 0.55 : nightAmt();
+  ctx.globalCompositeOperation = "lighter";
+  const fires = home ? [[CAMP.x, CAMP.y]] : [];
+  for (const b of hb()) if (b.t === "fire" || b.t === "furnace") fires.push([b.x, b.y]);
+  for (const f of fires) {
+    const fx = f[0] - camX + sx, fy = f[1] - camY + sy;
+    if (fx < -200 || fy < -200 || fx > VW + 200 || fy > VH + 200) continue;
+    const fl = 150 + Math.sin(time * 11 + f[0]) * 8;
+    const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, fl);
+    fg.addColorStop(0, "rgba(255,140,50," + (0.22 + night * 0.18) + ")"); fg.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = fg; ctx.fillRect(fx - fl, fy - fl, fl * 2, fl * 2);
+  }
+  ctx.globalCompositeOperation = "source-over";
+  const px = P.x - camX, py = P.y - camY;
+  // you can always see about 150px around you; night shrinks the rest of the view
+  const inner = Math.min(VW, VH) * (0.34 - night * 0.06), outer = Math.max(VW, VH) * (0.74 - night * 0.2);
+  const vg = ctx.createRadialGradient(px, py, inner, px, py, outer);
+  vg.addColorStop(0, "rgba(4,6,10," + (night * 0.04) + ")"); vg.addColorStop(1, "rgba(4,6,10," + (0.72 + night * 0.16) + ")");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+  if (night > 0) { ctx.fillStyle = "rgba(10,20,45," + night * 0.1 + ")"; ctx.fillRect(0, 0, VW, VH); }
+
+  if (hurtFlash > 0) {
+    const hg = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.7);
+    hg.addColorStop(0, "rgba(160,20,10,0)"); hg.addColorStop(1, "rgba(160,20,10," + (0.55 * hurtFlash) + ")");
+    ctx.fillStyle = hg; ctx.fillRect(0, 0, VW, VH);
+  }
+  if (state === "play" || state === "menu") {
+    if (home) edgeArrow(CAMP.x, CAMP.y, camX, camY, "#d9a441", "⌂");
+    else edgeArrow(getZone(curZone).exit.x, getZone(curZone).exit.y, camX, camY, "#d9a441", ZONES[curZone].vault ? "⬆" : "🚗");
+    if (ZONES[curZone].vault && countIn(bag, "keycard")) { const st = obs.find((o) => o.type === "stairs"); if (st) edgeArrow(st.x, st.y, camX, camY, "#e6be46", "⬇"); }
+    for (const l of loose) edgeArrow(l.x, l.y, camX, camY, "#e6be46", "🪪");
+    const boss = zombies.find((z) => z.boss && !z.dead);
+    if (boss) {
+      const bw = Math.min(420, VW * 0.5), bx = (VW - bw) / 2, by = VH - 46;
+      ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillRect(bx - 2, by - 2, bw + 4, 14);
+      ctx.fillStyle = "#b8322a"; ctx.fillRect(bx, by, bw * Math.max(0, boss.hp) / boss.max, 10);
+      ctx.font = "bold 13px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillStyle = "#e8e2d0"; ctx.fillText(BOSS[boss.boss].n, VW / 2, by - 8);
+    }
+    if (horde.active) { ctx.font = "bold 13px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillStyle = "#d0675e"; ctx.fillText("HORDE · " + horde.left + " LEFT", VW / 2, VH - 24); }
+    if (grave && grave.zone === curZone) edgeArrow(grave.x, grave.y, camX, camY, "#e8e2d0", "🎒");
+  }
+  if (joy.id !== null && state === "play") {
+    ctx.strokeStyle = "rgba(232,226,208,.35)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(joy.bx, joy.by, JR, 0, 7); ctx.stroke();
+    circ(joy.bx + clamp(input.jx, -1, 1) * JR, joy.by + clamp(input.jy, -1, 1) * JR, 24, "rgba(232,226,208,.28)");
+  }
+}
+
+// =============== loop ===============
+setZone("home");
+P.x = CAMP.x; P.y = CAMP.y + 60;
+refreshTitle();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt); deadTick(dt);
+  if (state !== "title") updateHud();
+  draw();
+  requestAnimationFrame(frame);
+}
+document.addEventListener("visibilitychange", () => { last = performance.now(); clearInput(); if (document.hidden) save(); });
+window.addEventListener("pagehide", save);
+window.ABEL_DEBUG = { P, get bag() { return bag; }, get builds() { return builds; }, get zombies() { return zombies; }, get obs() { return obs; }, get zone() { return curZone; }, get horde() { return horde; }, get drops() { return drops; }, travel, gain, spawnZombie, descend, get garage() { return garage; }, get loose() { return loose; }, get vaultsDone() { return vaultsDone; }, setZoneDirect(id) { setZone(id); const z = getZone(id); P.x = z.exit.x; P.y = z.exit.y - 60; startPlay(); }, set wt(v) { wt = v; }, get wt() { return wt; }, get state() { return state; } };
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
